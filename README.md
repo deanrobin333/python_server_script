@@ -17,7 +17,7 @@
     - [1. ](#1)
 ---
 ## Author Details
-- *Dean Robin Otsyeno - deanrobin777@gmail.com*
+- *Dean Robin Otsyeno - kotsyeno@gmail.com*
 
 ## Project
 #### 0
@@ -34,6 +34,6 @@
 
 <br></br>
 <div align="right">
-    <sub style="font-style: italic"> Dean Robin Otsyeno - deanrobin777@gmail.com</sub>
+    <sub style="font-style: italic"> Dean Robin Otsyeno - kotsyeno@gmail.com</sub>
 </div>
 '''
