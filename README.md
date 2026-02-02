@@ -1,7 +1,19 @@
 # Standardized Introductory Test Task
 ## **Server script that binds a port and responds to connections**
 ---
-## Description
+
+## Table of Contents
+- [Author Details](#author-details)
+- [Project Description](#project-description)
+- [Tasks](#tasks)
+    - [0. ](#0)
+    - [1. ](#1)
+---
+## Author Details
+- *Dean Robin Otsyeno - kotsyeno@gmail.com*
+---
+
+## Project Description
 - A server program that:
     - runs continuously
     - listens on a network port
@@ -10,16 +22,8 @@
     - checks a file
     - returns a response
 ---
-## Table of Contents
-- [Author Details](#author-details)
-- [Projects](#tasks)
-    - [0. ](#0)
-    - [1. ](#1)
----
-## Author Details
-- *Dean Robin Otsyeno - kotsyeno@gmail.com*
 
-## Project
+## Tasks
 #### 0
 ###### [Table of Contents](#table-of-contents)
 ### [0. ](./)
