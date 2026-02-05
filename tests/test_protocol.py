@@ -1,0 +1,78 @@
+#!/usr/bin/python3
+# tests/test_protocol.py
+
+from __future__ import annotations
+
+import socket
+import subprocess
+import sys
+import time
+
+
+def _get_free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return int(s.getsockname()[1])
+
+
+def _recv_all(conn: socket.socket, bufsize: int = 4096) -> bytes:
+    """Read until the server closes the connection (EOF)."""
+    chunks: list[bytes] = []
+    while True:
+        part = conn.recv(bufsize)
+        if not part:
+            break
+        chunks.append(part)
+    return b"".join(chunks)
+
+
+def test_server_responds_with_debug_and_result_line() -> None:
+    port = _get_free_port()
+
+    proc = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "python_server_script.server",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(port),
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    try:
+        # Give the server a moment to bind.
+        time.sleep(0.3)
+
+        # If the process already died, show why.
+        rc = proc.poll()
+        if rc is not None:
+            out, err = proc.communicate(timeout=1)
+            raise RuntimeError(
+                "Server exited early.\n"
+                f"exit_code={rc}\n"
+                f"--- stdout ---\n{out}\n"
+                f"--- stderr ---\n{err}\n"
+            )
+
+        with socket.create_connection(("127.0.0.1", port), timeout=3) as s:
+            s.sendall(b"hello\n")
+            raw = _recv_all(s)
+
+        data = raw.decode("utf-8", errors="replace")
+
+        assert "DEBUG:" in data, f"Missing DEBUG line. Got: {data!r}"
+        assert data.endswith("STRING NOT FOUND\n") or data.endswith(
+            "STRING EXISTS\n"
+        ), f"Missing/invalid result line at end. Got: {data!r}"
+
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            proc.kill()
