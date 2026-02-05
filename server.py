@@ -34,7 +34,7 @@ class TCPStringLookupServer:
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._sock.bind((self._cfg.host, self._cfg.port))
         self._sock.listen(128)
-        self._sock.settimeout(0.5) # important for graceful shutdown
+        self._sock.settimeout(0.5)  # important for graceful shutdown
 
         """Accept loop"""
         while not self._stop_event.is_set():
@@ -43,7 +43,7 @@ class TCPStringLookupServer:
             except socket.timeout:
                 continue
             except OSError:
-                # Happens if the socket is closed while we're waiting in accept()
+                # Happens if socket is closed while we're waiting in accept()
                 break
 
             """creates multithreading"""
@@ -64,11 +64,16 @@ class TCPStringLookupServer:
                 pass
 
     """runs in a separate thread per client"""
-    def _handle_client(self, conn: socket.socket, addr: tuple[str, int]) -> None:
+    def _handle_client(
+        self,
+        conn: socket.socket,
+        addr: tuple[str, int],
+    ) -> None:
         client_ip, _client_port = addr
         start = time.perf_counter()
 
-        """Timeout prevents a client from connecting and never sending anything"""
+        """Timeout prevents a client from connecting
+        and never sending anything"""
         try:
             conn.settimeout(5.0)
 
@@ -79,7 +84,12 @@ class TCPStringLookupServer:
             found = self._search_placeholder(query)
 
             elapsed_ms = (time.perf_counter() - start) * 1000.0
-            debug = f"DEBUG: ip={client_ip} query={query!r} elapsed_ms={elapsed_ms:.3f}\n"
+            debug = (
+                f"DEBUG: ip={client_ip} "
+                f"query={query!r} "
+                f"elapsed_ms={elapsed_ms:.3f}\n"
+            )
+
             conn.sendall(debug.encode("utf-8"))
             conn.sendall(RESPONSE_EXISTS if found else RESPONSE_NOT_FOUND)
 
@@ -98,22 +108,26 @@ class TCPStringLookupServer:
 
     @staticmethod
     def _search_placeholder(_query: str) -> bool:
-        return False # not yet implemented
+        return False  # not yet implemented
 
-"""reads command-line args"""
+
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="TCP String Lookup Server (skeleton)")
+    """reads command-line args"""
+    p = argparse.ArgumentParser(
+        description="TCP String Lookup Server (skeleton)"
+    )
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=44445)
     return p.parse_args()
 
-"""This is the 'orchestration' function:
-- parse args
-- build config
-- create server object
-- start server
-"""
+
 def main() -> None:
+    """This is the 'orchestration' function:
+    - parse args
+    - build config
+    - create server object
+    - start server
+    """
     args = parse_args()
     cfg = ServerConfig(host=args.host, port=args.port)
     server = TCPStringLookupServer(cfg)
