@@ -8,8 +8,21 @@ import subprocess
 import sys
 import time
 
+"""
+This test verifies the basic “wire protocol” between client and server:
+1. Server can start and bind a port
+2. A client can connect
+3. Client can send a query string
+4. Server responds with:
+- at least one DEBUG: line
+- and a final result line ending in either:
+  - STRING NOT FOUND or
+  - STRING EXISTS
+"""
+
 
 def _get_free_port() -> int:
+    """get an unused port for the operating system"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
         return int(s.getsockname()[1])
@@ -27,6 +40,7 @@ def _recv_all(conn: socket.socket, bufsize: int = 4096) -> bytes:
 
 
 def test_server_responds_with_debug_and_result_line() -> None:
+    """the actuall test to be done using pytest"""
     port = _get_free_port()
 
     proc = subprocess.Popen(
@@ -59,6 +73,7 @@ def test_server_responds_with_debug_and_result_line() -> None:
                 f"--- stderr ---\n{err}\n"
             )
 
+        """connect as a client and send query"""
         with socket.create_connection(("127.0.0.1", port), timeout=3) as s:
             s.sendall(b"hello\n")
             raw = _recv_all(s)

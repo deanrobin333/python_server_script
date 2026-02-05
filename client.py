@@ -8,11 +8,19 @@ import socket
 from typing import List
 
 
-RECV_BUFSIZE = 4096
-RECV_TIMEOUT_SECONDS = 5.0
+RECV_BUFSIZE = 4096  # how many bytes we ask for per recv() call.
+RECV_TIMEOUT_SECONDS = 5.0  # stops client hanging forever if server stalls
 
 
 def parse_args() -> argparse.Namespace:
+    """
+    This function defines how the client reads arguments from the terminal.
+    argparse.Namespace is the object containing values like:
+    - args.host
+    - args.port
+    - args.query
+    """
+
     parser = argparse.ArgumentParser(
         description="TCP String Lookup Client"
     )
@@ -33,7 +41,7 @@ def recv_all_with_timeout(sock: socket.socket) -> bytes:
     - If no data is ever received -> raise TimeoutError
     - If some data is received, then a timeout occurs -> return what we have
     """
-    chunks: List[bytes] = []
+    chunks: List[bytes] = []  # We store response data in pieces.
 
     while True:
         try:
@@ -49,10 +57,18 @@ def recv_all_with_timeout(sock: socket.socket) -> bytes:
                 )
             break
 
-    return b"".join(chunks)
+    return b"".join(chunks)  # merges all chunks into one byte string
 
 
 def main() -> None:
+    """
+    the executable entrypoint:
+    - parse args
+    - connect
+    - send query
+    - receive response
+    - print it
+    """
     args = parse_args()
     query_line = args.query + "\n"
 
