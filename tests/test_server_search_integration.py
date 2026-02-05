@@ -33,7 +33,13 @@ def test_server_returns_exists_for_exact_line(tmp_path: Path) -> None:
     data_file.write_text("one\ntwo\nthree\n", encoding="utf-8")
 
     cfg_file = tmp_path / "app.conf"
-    cfg_file.write_text(f"linuxpath={data_file}\n", encoding="utf-8")
+    # cfg_file.write_text(f"linuxpath={data_file}\n", encoding="utf-8")
+    cfg_file.write_text(
+        f"linuxpath={data_file}\n"
+        "reread_on_query=True\n"
+        "search_algo=linear\n",
+        encoding="utf-8",
+    )
 
     proc = subprocess.Popen(
         [

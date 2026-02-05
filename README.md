@@ -25,7 +25,10 @@
 
 ## How to run
 - “All commands should be run from the python_server_script/ directory (project root).”
-
+- running server on terminal:
+  python3 -m server --host <ip_address> --port <port_no> --config <config_file>
+  example:
+    python3 -m server --host 127.0.0.1 --port 44445 --config app.conf
 
 ---
 ## Tasks

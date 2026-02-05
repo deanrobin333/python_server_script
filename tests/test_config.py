@@ -51,3 +51,69 @@ def test_load_config_file_not_found_raises(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigError, match="not found"):
         load_config(cfg)
+
+
+"""Additional tests with reread_on_query implemented"""
+
+
+def test_load_config_defaults(tmp_path: Path) -> None:
+    cfg = tmp_path / "app.conf"
+    cfg.write_text("linuxpath=/tmp/data.txt\n", encoding="utf-8")
+
+    parsed = load_config(cfg)
+    assert parsed.linuxpath == Path("/tmp/data.txt")
+    assert parsed.reread_on_query is True
+    assert parsed.search_algo == "linear"
+
+
+def test_load_config_parses_reread_on_query_and_algo(tmp_path: Path) -> None:
+    cfg = tmp_path / "app.conf"
+    cfg.write_text(
+        "\n".join(
+            [
+                "linuxpath=/tmp/data.txt",
+                "reread_on_query=False",
+                "search_algo=linear",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    parsed = load_config(cfg)
+    assert parsed.reread_on_query is False
+    assert parsed.search_algo == "linear"
+
+
+def test_load_config_invalid_bool_raises(tmp_path: Path) -> None:
+    cfg = tmp_path / "app.conf"
+    cfg.write_text(
+        "\n".join(
+            [
+                "linuxpath=/tmp/data.txt",
+                "reread_on_query=maybe",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="Invalid boolean"):
+        load_config(cfg)
+
+
+def test_load_config_unsupported_search_algo_raises(tmp_path: Path) -> None:
+    cfg = tmp_path / "app.conf"
+    cfg.write_text(
+        "\n".join(
+            [
+                "linuxpath=/tmp/data.txt",
+                "search_algo=fastest_in_the_world",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="Unsupported search_algo"):
+        load_config(cfg)

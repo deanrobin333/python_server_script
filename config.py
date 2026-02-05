@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 # config.py
 
-# src/python_server_script/config.py
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,6 +21,18 @@ class AppConfig:
     - linuxpath=<path to file>
     """
     linuxpath: Path
+    reread_on_query: bool = True
+    search_algo: str = "linear"
+
+
+def _parse_bool(value: str) -> bool:
+    """Parse True/False from config values."""
+    v = value.strip().lower()
+    if v in {"true", "1", "yes", "y", "on"}:
+        return True
+    if v in {"false", "0", "no", "n", "off"}:
+        return False
+    raise ConfigError(f"Invalid boolean value: {value!r}")
 
 
 def load_config(config_path: str | Path) -> AppConfig:
@@ -31,12 +42,15 @@ def load_config(config_path: str | Path) -> AppConfig:
     The config may contain many irrelevant lines.
     The relevant line starts with:
         linuxpath=/some/path/file.txt
+        reread_on_query=True|False
+        search_algo=linear
 
     Rules:
-    - Only lines starting with 'linuxpath=' count.
-    - First valid linuxpath wins.
-    - Blank lines and comments are ignored.
+    - Unknown keys are ignored.
+    - Blank lines and comments (#...) are ignored.
+    - linuxpath is required.
     """
+
     path = Path(config_path)
 
     try:
@@ -49,6 +63,8 @@ def load_config(config_path: str | Path) -> AppConfig:
         ) from exc
 
     linuxpath: Path | None = None
+    reread_on_query: bool = True
+    search_algo: str = "linear"
 
     for line in raw.splitlines():
         stripped = line.strip()
@@ -60,11 +76,36 @@ def load_config(config_path: str | Path) -> AppConfig:
             value = stripped[len("linuxpath="):].strip()
             if not value:
                 raise ConfigError("linuxpath is present but empty")
-
             linuxpath = Path(value)
-            break
+            continue
+
+        if stripped.startswith("reread_on_query="):
+            value = stripped[len("reread_on_query="):].strip()
+            reread_on_query = _parse_bool(value)
+            continue
+
+        if stripped.startswith("search_algo="):
+            value = stripped[len("search_algo="):].strip()
+            if not value:
+                raise ConfigError("search_algo is present but empty")
+            search_algo = value
+            continue
+
+        # Ignore other keys/lines.
 
     if linuxpath is None:
         raise ConfigError("Missing required config entry: linuxpath=")
 
-    return AppConfig(linuxpath=linuxpath)
+    # currently only support 'linear'. We'll extend as we implement more.
+    allowed = {"linear"}
+    if search_algo not in allowed:
+        raise ConfigError(
+            f"Unsupported search_algo={search_algo!r}. "
+            f"Allowed: {sorted(allowed)}"
+        )
+
+    return AppConfig(
+        linuxpath=linuxpath,
+        reread_on_query=reread_on_query,
+        search_algo=search_algo,
+    )
