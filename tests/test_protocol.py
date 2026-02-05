@@ -47,7 +47,7 @@ def test_server_responds_with_debug_and_result_line() -> None:
         [
             sys.executable,
             "-m",
-            "python_server_script.server",
+            "server",
             "--host",
             "127.0.0.1",
             "--port",

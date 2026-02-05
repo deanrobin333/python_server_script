@@ -23,6 +23,11 @@
     - returns a response
 ---
 
+## How to run
+- “All commands should be run from the python_server_script/ directory (project root).”
+
+
+---
 ## Tasks
 #### 0
 ###### [Table of Contents](#table-of-contents)
