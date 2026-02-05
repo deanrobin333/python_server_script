@@ -10,7 +10,6 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
-
 MAX_PAYLOAD_BYTES = 1024
 RESPONSE_EXISTS = b"STRING EXISTS\n"
 RESPONSE_NOT_FOUND = b"STRING NOT FOUND\n"
@@ -112,12 +111,17 @@ class TCPStringLookupServer:
 
 
 def parse_args() -> argparse.Namespace:
-    """reads command-line args"""
-    p = argparse.ArgumentParser(
-        description="TCP String Lookup Server (skeleton)"
-    )
+    """reads data from a configuration file"""
+    p = argparse.ArgumentParser(description="TCP String Lookup Server")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=44445)
+
+    # NEW: config file path (required for Task 3B)
+    p.add_argument(
+        "--config",
+        required=True,
+        help="Path to configuration file (must include linuxpath=...)",
+    )
     return p.parse_args()
 
 
@@ -128,14 +132,29 @@ def main() -> None:
     - create server object
     - start server
     """
+
+    """local import to keep startup clean"""
+    from config import ConfigError, load_config
+
     args = parse_args()
+
+    # NEW: load config and validate linuxpath exists in config file
+    try:
+        app_cfg = load_config(args.config)
+    except ConfigError as exc:
+        # Fail fast with a clear message
+        raise SystemExit(f"Config error: {exc}") from exc
+
+    # For now we only parse it (Task 4 will actually use it)
+    # You can keep this as a local variable to avoid unused warnings later.
+    _linuxpath = app_cfg.linuxpath
+
     cfg = ServerConfig(host=args.host, port=args.port)
     server = TCPStringLookupServer(cfg)
 
     try:
         server.start()
     except KeyboardInterrupt:
-        # Ctrl+C pressed
         pass
     finally:
         server.stop()

@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+import pytest
+
 import socket
 import subprocess
 import sys
@@ -39,9 +42,16 @@ def _recv_all(conn: socket.socket, bufsize: int = 4096) -> bytes:
     return b"".join(chunks)
 
 
-def test_server_responds_with_debug_and_result_line() -> None:
+def test_server_responds_with_debug_and_result_line(tmp_path: Path) -> None:
     """the actuall test to be done using pytest"""
     port = _get_free_port()
+
+    # create a dummy data file and config file
+    data_file = tmp_path / "data.txt"
+    data_file.write_text("hello\n", encoding="utf-8")
+
+    cfg_file = tmp_path / "app.conf"
+    cfg_file.write_text(f"linuxpath={data_file}\n", encoding="utf-8")
 
     proc = subprocess.Popen(
         [
@@ -52,6 +62,8 @@ def test_server_responds_with_debug_and_result_line() -> None:
             "127.0.0.1",
             "--port",
             str(port),
+            "--config",
+            str(cfg_file),
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
