@@ -10,6 +10,9 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
+from pathlib import Path
+from search import SearchError, line_exists_in_file
+
 MAX_PAYLOAD_BYTES = 1024
 RESPONSE_EXISTS = b"STRING EXISTS\n"
 RESPONSE_NOT_FOUND = b"STRING NOT FOUND\n"
@@ -22,8 +25,9 @@ class ServerConfig:
 
 
 class TCPStringLookupServer:
-    def __init__(self, cfg: ServerConfig) -> None:
+    def __init__(self, cfg: ServerConfig, data_file: Path) -> None:
         self._cfg = cfg
+        self._data_file = data_file
         self._sock: Optional[socket.socket] = None
         self._stop_event = threading.Event()
 
@@ -80,7 +84,13 @@ class TCPStringLookupServer:
             payload = payload.rstrip(b"\x00")
             query = payload.decode("utf-8", errors="replace").rstrip("\r\n")
 
-            found = self._search_placeholder(query)
+            try:
+                found = line_exists_in_file(self._data_file, query)
+            except SearchError as exc:
+                # Treat search errors as NOT FOUND but emit debug info
+                found = False
+                # we shall append to debug later, but keeping minimal for now
+
 
             elapsed_ms = (time.perf_counter() - start) * 1000.0
             debug = (
@@ -104,10 +114,6 @@ class TCPStringLookupServer:
                 conn.close()
             except OSError:
                 pass
-
-    @staticmethod
-    def _search_placeholder(_query: str) -> bool:
-        return False  # not yet implemented
 
 
 def parse_args() -> argparse.Namespace:
@@ -147,10 +153,10 @@ def main() -> None:
 
     # For now we only parse it (Task 4 will actually use it)
     # You can keep this as a local variable to avoid unused warnings later.
-    _linuxpath = app_cfg.linuxpath
+    data_file = app_cfg.linuxpath
 
     cfg = ServerConfig(host=args.host, port=args.port)
-    server = TCPStringLookupServer(cfg)
+    server = TCPStringLookupServer(cfg, data_file=data_file)
 
     try:
         server.start()
