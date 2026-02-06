@@ -254,6 +254,12 @@
 ###### [Table of Contents](#table-of-contents)
 
 - Service file: `tcp-string-lookup.service`
+    - in the service file set this variables
+        - if you created the user `tcpstring` uncomment this or set yours
+            - #User=tcpstring
+            - #Group=tcpstring
+        - `WorkingDirectory=`
+        - `ReadWritePaths=`
 
 - Key steps:
 
@@ -288,7 +294,8 @@
 
 ## Benchmarking
 ###### [Table of Contents](#table-of-contents)
-
+- Benchmarking report available in the file
+    -`Benchmark_report-TCP_String_Lookup_server-python_server_script`
 - Run benchmarks:
     - quicker first run:
 	  - `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 1000 --verbose`	   
