@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import socket
+import ssl
 import threading
 import time
 from dataclasses import dataclass
@@ -26,9 +27,15 @@ class ServerConfig:
 
 
 class TCPStringLookupServer:
-    def __init__(self, cfg: ServerConfig, engine: SearchEngine) -> None:
+    def __init__(
+        self,
+        cfg: ServerConfig,
+        engine: SearchEngine,
+        ssl_context: ssl.SSLContext | None = None,
+    ) -> None:
         self._cfg = cfg
         self._engine = engine
+        self._ssl_context = ssl_context
         self._sock: Optional[socket.socket] = None
         self._stop_event = threading.Event()
 
@@ -46,11 +53,10 @@ class TCPStringLookupServer:
             except socket.timeout:
                 continue
             except OSError:
-                # Socket was closed during accept()
                 break
 
             t = threading.Thread(
-                target=self._handle_client,
+                target=self._handle_client_thread,
                 args=(conn, addr),
                 daemon=True,
             )
@@ -64,6 +70,28 @@ class TCPStringLookupServer:
                 self._sock.close()
             except OSError:
                 pass
+
+    def _handle_client_thread(
+        self, conn: socket.socket, addr: tuple[str, int]
+    ) -> None:
+        """
+        Per-client thread.
+        TLS wrapping is done here to avoid blocking the accept loop.
+        """
+        if self._ssl_context is not None:
+            try:
+                conn = self._ssl_context.wrap_socket(
+                    conn,
+                    server_side=True,
+                )
+            except ssl.SSLError:
+                try:
+                    conn.close()
+                except OSError:
+                    pass
+                return
+
+        self._handle_client(conn, addr)
 
     def _handle_client(
         self, conn: socket.socket, addr: tuple[str, int]
@@ -119,6 +147,25 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+def _build_server_ssl_context(app_cfg) -> ssl.SSLContext | None:
+    """Build SSL context if ssl_enabled=True, otherwise return None."""
+    if not app_cfg.ssl_enabled:
+        return None
+
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+
+    assert app_cfg.ssl_certfile is not None
+    assert app_cfg.ssl_keyfile is not None
+
+    ctx.load_cert_chain(
+        certfile=str(app_cfg.ssl_certfile),
+        keyfile=str(app_cfg.ssl_keyfile),
+    )
+
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    return ctx
+
+
 def main() -> None:
     args = parse_args()
 
@@ -129,15 +176,20 @@ def main() -> None:
 
     engine = SearchEngine.from_config(app_cfg)
 
-    # If file is stable, pre-load cache for speed at startup.
     if not app_cfg.reread_on_query:
         try:
             engine.warmup()
         except EngineError as exc:
             raise SystemExit(f"Engine error: {exc}") from exc
 
+    ssl_ctx = _build_server_ssl_context(app_cfg)
+
     cfg = ServerConfig(host=args.host, port=args.port)
-    server = TCPStringLookupServer(cfg, engine=engine)
+    server = TCPStringLookupServer(
+        cfg,
+        engine=engine,
+        ssl_context=ssl_ctx,
+    )
 
     try:
         server.start()

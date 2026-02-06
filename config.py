@@ -24,6 +24,15 @@ class AppConfig:
     reread_on_query: bool = True
     search_algo: str = "linear_scan"
 
+    # Optional SSL/TLS settings
+    ssl_enabled: bool = False
+    ssl_certfile: Path | None = None
+    ssl_keyfile: Path | None = None
+
+    # Client-side SSL verification options (optional)
+    ssl_verify: bool = True
+    ssl_cafile: Path | None = None
+
 
 def _parse_bool(value: str) -> bool:
     """Parse True/False from config values."""
@@ -45,6 +54,13 @@ def load_config(config_path: str | Path) -> AppConfig:
         reread_on_query=True|False
         search_algo=linear_scan
 
+    Optional SSL:
+        ssl_enabled=True|False
+        ssl_certfile=/path/to/server.crt
+        ssl_keyfile=/path/to/server.key
+        ssl_verify=True|False
+        ssl_cafile=/path/to/ca_bundle.crt
+
     Rules:
     - Unknown keys are ignored.
     - Blank lines and comments (#...) are ignored.
@@ -65,6 +81,12 @@ def load_config(config_path: str | Path) -> AppConfig:
     linuxpath: Path | None = None
     reread_on_query: bool = True
     search_algo: str = "linear_scan"
+
+    ssl_enabled: bool = False
+    ssl_certfile: Path | None = None
+    ssl_keyfile: Path | None = None
+    ssl_verify: bool = True
+    ssl_cafile: Path | None = None
 
     for line in raw.splitlines():
         stripped = line.strip()
@@ -91,6 +113,32 @@ def load_config(config_path: str | Path) -> AppConfig:
             search_algo = value
             continue
 
+        # SSL parsing (optional)
+        if stripped.startswith("ssl_enabled="):
+            value = stripped[len("ssl_enabled="):].strip()
+            ssl_enabled = _parse_bool(value)
+            continue
+
+        if stripped.startswith("ssl_certfile="):
+            value = stripped[len("ssl_certfile="):].strip()
+            ssl_certfile = Path(value) if value else None
+            continue
+
+        if stripped.startswith("ssl_keyfile="):
+            value = stripped[len("ssl_keyfile="):].strip()
+            ssl_keyfile = Path(value) if value else None
+            continue
+
+        if stripped.startswith("ssl_verify="):
+            value = stripped[len("ssl_verify="):].strip()
+            ssl_verify = _parse_bool(value)
+            continue
+
+        if stripped.startswith("ssl_cafile="):
+            value = stripped[len("ssl_cafile="):].strip()
+            ssl_cafile = Path(value) if value else None
+            continue
+
         # Ignore other keys/lines.
 
     if linuxpath is None:
@@ -110,8 +158,27 @@ def load_config(config_path: str | Path) -> AppConfig:
             f"Allowed: {sorted(allowed)}"
         )
 
+    # If SSL is enabled, server must have cert + key
+    if ssl_enabled:
+        if ssl_certfile is None or ssl_keyfile is None:
+            raise ConfigError(
+                "ssl_enabled=True requires ssl_certfile=... "
+                "and ssl_keyfile=..."
+            )
+    # Client verification sanity: only meaningful when TLS is enabled
+    if ssl_enabled and ssl_verify and ssl_cafile is None:
+        raise ConfigError(
+            "ssl_verify=True requires ssl_cafile=... "
+            "(for self-signed cert verification)."
+        )
+
     return AppConfig(
         linuxpath=linuxpath,
         reread_on_query=reread_on_query,
         search_algo=search_algo,
+        ssl_enabled=ssl_enabled,
+        ssl_certfile=ssl_certfile,
+        ssl_keyfile=ssl_keyfile,
+        ssl_verify=ssl_verify,
+        ssl_cafile=ssl_cafile,
     )
