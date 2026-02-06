@@ -6,7 +6,7 @@
 - [Author Details](#author-details)
 - [Project Description](#project-description)
 - [How to run](#How-to-run)
-- [Example configuration file eg `app.conf`](#Example-configuration-file-eg-`app.conf`)
+- [Example configuration file](#Example-configuration-file)
 - [SSL settings in configuration file](#SSL-settings-in-configuration-file)
 - [How to run](#How-to-run)
 - [Benchmarks](#Benchmarks)
@@ -19,6 +19,7 @@
 ---
 
 ## Project Description
+###### [Table of Contents](#table-of-contents)
 - A server program that:
     - runs continuously
     - listens on a network port
@@ -29,6 +30,7 @@
 ---
 
 ## How to run
+###### [Table of Contents](#table-of-contents)
 - “All commands should be run from the python_server_script/ directory (project root).”
 - running server on terminal:
   python3 -m server --host <ip_address> --port <port_no> --config <config_file>
@@ -54,8 +56,10 @@
         ```
 ---
 
-### Example configuration file eg `app.conf`
+### Example configuration file
+###### [Table of Contents](#table-of-contents)
 
+- eg. file `app.conf`
 ```
 # example config (unknown keys are ignored)
 foo=deanovo
@@ -88,6 +92,7 @@ ssl_verify=False
 ---
 
 ### SSL settings in configuration file
+###### [Table of Contents](#table-of-contents)
 - breakdown:
 	- TLS can be enabled/disabled via `ssl_enabled`.    
 	- If `ssl_enabled=True` and `ssl_verify=True`, the client verifies the server using the configured CA/certificate file (`ssl_cafile`) and validates hostname/IP via SAN.    
@@ -121,6 +126,7 @@ ssl_verify=False
         ```
 ---
 ### Benchmarks
+###### [Table of Contents](#table-of-contents)
 - running benchmarks
     - From your project root (same place you run pytest)
     - use `--verbose` to show progress
@@ -140,6 +146,7 @@ ssl_verify=False
 
 
 ---
+###### [Table of Contents](#table-of-contents)
 
 <br></br>
 <div align="right">
