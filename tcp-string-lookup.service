@@ -1,0 +1,37 @@
+[Unit]
+Description=TCP String Lookup Server
+After=network.target
+
+[Service]
+Type=simple
+
+# Run as a locked-down user
+#User=tcpstring
+#Group=tcpstring
+
+# Where your code lives
+#WorkingDirectory=/opt/python_server_script
+WorkingDirectory=
+
+# If you use a venv, point to it here; otherwise use /usr/bin/python3
+#ExecStart=/usr/bin/python3 -m server --host 0.0.0.0 --port 44445 --config /opt/python_server_script/app.conf
+ExecStart=
+
+# Restart behavior
+Restart=on-failure
+RestartSec=1
+
+# Basic hardening (safe defaults)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+#ReadWritePaths=/opt/python_server_script
+ReadWritePaths=
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

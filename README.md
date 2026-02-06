@@ -1,112 +1,225 @@
-# Standardized Introductory Test Task
-## **Server script that binds a port and responds to connections**
----
+# TCP String Lookup Server
+
+**Standardized Introductory Test Task**
+
+* * *
 
 ## Table of Contents
-- [Author Details](#author-details)
-- [Project Description](#project-description)
-- [How to run](#How-to-run)
-- [Example configuration file](#Example-configuration-file)
-- [SSL settings in configuration file](#SSL-settings-in-configuration-file)
-- [How to run](#How-to-run)
-- [Benchmarks](#Benchmarks)
-- [Tasks](#tasks)
-    - [0. ](#0)
-    - [1. ](#1)
----
+1. [Author Details](#author-details)
+2. [Project Overview](#Project-Overview)
+3. [Architecture & Design](#Architecture-&-Design)
+4. [Requirements](#Requirements)
+5. [Running the Server and Client](#Running-the-Server-and-Client)
+6. [Configuration File](#Configuration-File)
+7. [Search Algorithms](#Search-Algorithms)
+8. [SSL or TLS Support](#SSL-or-TLS-Support)
+9. [Running as a Daemon (systemd)](#Running-as-a-Daemon-(systemd))
+10. [Benchmarking](#Benchmarking)
+11. [Testing](#Testing)
+12. [Limitations and Notes](#Limitations-and-Notes)
+    
+
+* * *
+
 ## Author Details
-- *Dean Robin Otsyeno - kotsyeno@gmail.com*
----
-
-## Project Description
-###### [Table of Contents](#table-of-contents)
-- A server program that:
-    - runs continuously
-    - listens on a network port
-    - accepts connections
-    - receives a query string
-    - checks a file
-    - returns a response
----
-
-## How to run
-###### [Table of Contents](#table-of-contents)
-- “All commands should be run from the python_server_script/ directory (project root).”
-- running server on terminal:
-  python3 -m server --host <ip_address> --port <port_no> --config <config_file>
-  example:
-    `python3 -m server --host 127.0.0.1 --port 44445 --config app.conf`
-
-- running as a client
-    - search a single string
-        `python3 -m client --host <ip_address> --port <port_no> --config <config_file> "<string_to_search>"`
-        - example:
-            `python3 -m client --host 127.0.0.1 --port 44445 --config app.conf "11;0;23;16;0;18;3;0;"`
-    - run in interactive mode
-        ```
-        nc 127.0.0.1 44445
-        11;0;23;16;0;18;3;0;
-        ```
-- running client from a different 
-    - On primary PC start server using `python3 -m server --host 0.0.0.0 --port 44445 --config app.conf`
-    - then on client computer
-        ```
-        nc <SERVER_IP> 44445
-        3;0;1;28;0;7;5;0;
-        ```
----
-
-### Example configuration file
 ###### [Table of Contents](#table-of-contents)
 
-- eg. file `app.conf`
-```
-# example config (unknown keys are ignored)
-foo=deanovo
+**Dean Robin Otsyeno**  
+📧 *kotsyeno@gmail.com*
 
-# PATH TO DATA FILE 
-linuxpath=../200k.txt
+* * *
 
-# True = reread file every query (file may change)
-# False = cache allowed (file stable)
-reread_on_query=False
-
-# Algorithms:
-# reread_on_query=True  -> linear_scan, mmap_scan, grep_fx
-# reread_on_query=False -> linear_scan, set_cache, sorted_bisect
-search_algo=set_cache
-
-# ENABLING SSL
-# if true, must profide path to certfile and keyfile
-ssl_enabled=False
-
-#ssl_certfile=certs/server.crt
-#ssl_keyfile=certs/server.key
-
-# Client settings (optional)
-# client SSL verification, if True must provide path to ssl_cafile
-ssl_verify=False
-#ssl_cafile=certs/server.crt
-
-```
----
-
-### SSL settings in configuration file
+## Project Overview
 ###### [Table of Contents](#table-of-contents)
-- breakdown:
-	- TLS can be enabled/disabled via `ssl_enabled`.    
-	- If `ssl_enabled=True` and `ssl_verify=True`, the client verifies the server using the configured CA/certificate file (`ssl_cafile`) and validates hostname/IP via SAN.    
-	- For local development, a self-signed cert is generated with SAN for both `localhost` and `127.0.0.1`.    
-	- If `ssl_verify=False`, the connection is encrypted but server identity is not verified (development-only).
 
-- Summary
-    - `ssl_enabled=True/False` controls TLS on/off        
-    - `ssl_verify=True/False` controls authentication strictness
-    - When `ssl_verify=True`, require:        
-        - `ssl_cafile` (trust anchor)            
-        - and **use SAN cert** (recommended)            
-    - When `ssl_verify=False`, allow insecure local testing
+- This project implements a **high-performance TCP server** that:
 
+	- Runs continuously
+	    
+	- Binds to a configurable network port
+	    
+	- Accepts multiple client connections concurrently
+	    
+	- Receives query strings
+	    
+	- Performs exact full-line lookups in a data file
+	    
+	- Returns structured responses
+	    
+	- Supports multiple search algorithms
+	    
+	- Supports optional SSL/TLS encryption
+	    
+	- Includes benchmarking and automated tests
+    
+
+- The server is designed to be:
+
+	- Configurable
+	    
+	- Secure
+	    
+	- Performant
+	    
+	- Production-deployable (systemd-ready)
+    
+
+* * *
+
+## Architecture & Design
+###### [Table of Contents](#table-of-contents)
+
+**Core components:**
+
+- `server.py` — TCP server implementation
+    
+- `client.py` — CLI client
+    
+- `search_engine.py` — algorithm dispatch + caching
+    
+- `search.py` — individual search implementations
+    
+- `config.py` — strict configuration parsing & validation
+    
+- `benchmarks/` — performance benchmarking harness
+    
+- `tests/` — pytest-based test suite
+    
+
+**Concurrency model:**
+
+- One thread per client connection
+    
+- Persistent connections supported (multiple queries per connection)
+    
+- Graceful shutdown handling
+    
+
+* * *
+
+## Requirements
+###### [Table of Contents](#table-of-contents)
+
+- Python **3.10+**
+    
+- Linux (tested on Ubuntu)
+    
+- Optional:
+    
+    - `openssl` (for SSL certificates)
+        
+    - `nc` / `netcat` (for interactive testing)
+        
+
+- Install Python dependencies (if any):
+
+	- `pip install -r requirements.txt`
+
+* * *
+
+## Running the Server and Client
+###### [Table of Contents](#table-of-contents)
+
+> All commands should be run from the **project root** (`python_server_script/`).
+
+### Start the server
+
+`python3 -m server --host 127.0.0.1 --port 44445 --config app.conf`
+
+### Run a client (single query)
+
+`python3 -m client --host 127.0.0.1 --port 44445 --config app.conf "11;0;23;16;0;18;3;0;"`
+
+### Interactive mode (netcat)
+
+`nc 127.0.0.1 4444511;0;23;16;0;18;3;0;`
+
+### From another computer (LAN)
+
+- On server machine:
+
+	- `python3 -m server --host 0.0.0.0 --port 44445 --config app.conf`
+
+- Open firewall:
+
+	- `sudo ufw allow 44445/tcp`
+
+- On client machine:
+
+	- `nc <SERVER_IP> 444453;0;1;28;0;7;5;0;`
+
+* * *
+
+## Configuration File
+###### [Table of Contents](#table-of-contents)
+
+- Example `app.conf`: - set the `linxpath`
+	```
+	# Unknown keys are ignored
+	foo=deanovo
+	
+	# Path to data file
+	linuxpath=../200k.txt
+	
+	# True = reread file every query
+	# False = allow caching (file must be stable)
+	reread_on_query=False
+	
+	# Algorithms:
+	# reread_on_query=True  -> linear_scan, mmap_scan, grep_fx
+	# reread_on_query=False -> linear_scan, set_cache, sorted_bisect
+	search_algo=set_cache
+	
+	# SSL/TLS
+	ssl_enabled=False
+	# ssl_certfile=certs/server.crt
+	# ssl_keyfile=certs/server.key
+	
+	# Client verification options
+	ssl_verify=False
+	# ssl_cafile=certs/server.crt
+	
+	```
+
+* * *
+
+## Search Algorithms
+###### [Table of Contents](#table-of-contents)
+
+| Algorithm | Mode | Description |
+| --- | --- | --- |
+| `linear_scan` | reread | Sequential scan (baseline) |
+| `mmap_scan` | reread | Memory-mapped file scan |
+| `grep_fx` | reread | External `grep -F -x` |
+| `set_cache` | cached | O(1) hash lookup |
+| `sorted_bisect` | cached | Binary search on sorted list |
+
+- Algorithm availability is **validated at startup** based on `reread_on_query`.
+
+* * *
+
+## SSL or TLS Support
+###### [Table of Contents](#table-of-contents)
+
+### Overview
+
+- SSL/TLS can be enabled or disabled via config
+    
+- Encryption and authentication are configurable separately
+    
+- Self-signed certificates are supported
+    
+- SAN-aware certificate validation supported
+    
+
+### Modes
+
+- **Encrypted only** (`ssl_verify=False`)
+    
+- **Encrypted + authenticated** (`ssl_verify=True` + `ssl_cafile`)
+    
+
+### Generate a certificate (recommended)
 - Example to generate OpenSSL Certificate
     - create a certs directory `mkdir -p certs`
 
@@ -124,57 +237,128 @@ ssl_verify=False
         ```        
         openssl req -x509 -newkey rsa:2048 -keyout certs/server.key -out certs/server.crt -days 365 -nodes -subj "/CN=localhost"
         ```
----
-### Benchmarks
-###### [Table of Contents](#table-of-contents)
-- running benchmarks
-    - From your project root (same place you run pytest)
-    - use `--verbose` to show progress
 
+### Summary
+
+- `ssl_enabled=True` → TLS enabled
+    
+- `ssl_verify=True` → certificate verification enforced
+    
+- `ssl_verify=False` → encryption only (dev/testing)
+    
+
+* * *
+
+## Running as a Daemon (systemd)
+###### [Table of Contents](#table-of-contents)
+
+- Service file: `tcp-string-lookup.service`
+
+- Key steps:
+
+	```
+	# Create a dedicated service user (recommended)
+	sudo useradd --system --no-create-home --shell /usr/sbin/nologin tcpstring
+	
+	sudo mkdir -p /opt/python_server_script
+	sudo rsync -a ./python_server_script/ /opt/python_server_script/
+	sudo chown -R tcpstring:tcpstring /opt/python_server_script
+	```
+
+- Install service:
+
+	```
+	sudo cp tcp-string-lookup.service /etc/systemd/system/
+	sudo systemctl daemon-reload
+	sudo systemctl enable tcp-string-lookup
+	sudo systemctl start tcp-string-lookup
+	
+	````
+
+- Check status:
+
+	`sudo systemctl status tcp-string-lookup --no-pager`
+
+- Logs:
+
+	`sudo journalctl -u tcp-string-lookup -f`
+
+* * *
+
+## Benchmarking
+###### [Table of Contents](#table-of-contents)
+
+- Run benchmarks:
     - quicker first run:
-        `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 200`
-        - using verbose:
-            `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 200 --verbose`
-        - for report-grade data bump the queries eg
-            `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 1000 --verbose`
+	  - `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 1000 --verbose`	   
+	    - run for 200 queries
+			- `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 200`
                 
-
     - Slow:
-        `python3 -m benchmarks.benchmark_search --mode both`
-
-    - 2 directories are created in the benchmark directory: data & results
-
-- Understanding `results_algo.csv` file columns - csv file generated by benchmark script
-    - **ts** — Timestamp when that row/run was recorded.
-        
-    - **algo** — Which search algorithm was used:
-        
-        - `linear_scan`, `mmap_scan`, `grep_fx`, `set_cache`, `sorted_bisect`
-    - **reread_on_query** — Whether the engine was configured to reread from disk each query:
-        
-        - `true`: reread mode (disk-backed algorithms)
-            
-        - `false`: cache allowed (including `set_cache` / `sorted_bisect`)
-            
-    - **lines** — How many lines were in the test data file.
-        
-    - **queries** — How many query lookups were executed for that run.
-        
-    - **hits** — How many queries were found in the dataset (based on hit-ratio).
-        
-    - **avg_ms** — Mean latency per query in milliseconds (average of all queries).
-        
-    - **p50_ms** — Median latency per query (50th percentile). “Typical” request time.
-        
-    - **p95_ms** — 95th percentile latency. “Tail latency” (slow-ish worst-case).
-        
-    - **min_ms / max_ms** — Fastest and slowest single query in the run.
-        
-    - **skipped / skip_reason** — Used when the benchmark intentionally skips invalid combos (kept blank when everything ran).
+        - `python3 -m benchmarks.benchmark_search --mode both`
 
 
----
+
+- Generated outputs:
+
+	- `benchmarks/data/`
+	    
+	- `benchmarks/results/results_algo.csv`
+    
+
+### CSV Column Meaning
+
+| Column | Meaning |
+| --- | --- |
+| `ts` | Timestamp of run |
+| `algo` | Algorithm used |
+| `reread_on_query` | Disk vs cached mode |
+| `lines` | Dataset size |
+| `queries` | Number of queries |
+| `hits` | Successful lookups |
+| `avg_ms` | Average latency |
+| `p50_ms` | Median latency |
+| `p95_ms` | Tail latency |
+| `min_ms` | Fastest query |
+| `max_ms` | Slowest query |
+
+* * *
+
+## Testing
 ###### [Table of Contents](#table-of-contents)
+
+- Run all tests:
+
+	- `pytest -q`
+
+- Test coverage includes:
+
+	- Config parsing
+	    
+	- Protocol correctness
+	    
+	- Server/client integration
+	    
+	- Algorithm consistency
+	    
+	- Error handling
+    
+
+* * *
+
+## Limitations and Notes
+###### [Table of Contents](#table-of-contents)
+
+- No authentication/authorization beyond TLS
+    
+- No persistence beyond in-memory caches
+    
+- Designed for exact full-line matches only
+    
+- Not intended as a general-purpose database
+    
+
+* * *
 
 <br></br>
 <div align="right">
