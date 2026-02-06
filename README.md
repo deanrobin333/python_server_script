@@ -5,6 +5,9 @@
 ## Table of Contents
 - [Author Details](#author-details)
 - [Project Description](#project-description)
+- [How to run](#How to run)
+- [Example configuration file eg `app.conf`](#Example configuration file eg `app.conf`)
+- [Project Description](#project-description)
 - [Tasks](#tasks)
     - [0. ](#0)
     - [1. ](#1)
@@ -47,52 +50,40 @@
         nc <SERVER_IP> 44445
         3;0;1;28;0;7;5;0;
         ```
+---
 
-- example of config file eg . app.conf
-    ```
-    # example config (unknown keys are ignored)
-    foo=deanovo
+### Example configuration file eg `app.conf`
 
-    # PATH TO DATA FILE 
-    linuxpath=../200k.txt
+```
+# example config (unknown keys are ignored)
+foo=deanovo
 
-    # True = reread file every query (file may change)
-    # False = cache allowed (file stable)
-    reread_on_query=False
+# PATH TO DATA FILE 
+linuxpath=../200k.txt
 
-    # Algorithms:
-    # reread_on_query=True  -> linear_scan, mmap_scan, grep_fx
-    # reread_on_query=False -> linear_scan, set_cache, sorted_bisect
-    search_algo=set_cache
+# True = reread file every query (file may change)
+# False = cache allowed (file stable)
+reread_on_query=False
 
-    # ENABLING SSL
-    # if true, must profile path to certfile and keyfile
-    ssl_enabled=False
+# Algorithms:
+# reread_on_query=True  -> linear_scan, mmap_scan, grep_fx
+# reread_on_query=False -> linear_scan, set_cache, sorted_bisect
+search_algo=set_cache
 
-    ssl_certfile=certs/server.crt
-    ssl_keyfile=certs/server.key
+# ENABLING SSL
+# if true, must profile path to certfile and keyfile
+ssl_enabled=False
 
-    # Client settings (optional)
-    # client SSL verification, if True must provide path to ssl_cafile
-    ssl_verify=False
-    #ssl_cafile=certs/server.crt
+ssl_certfile=certs/server.crt
+ssl_keyfile=certs/server.key
 
-    ```
+# Client settings (optional)
+# client SSL verification, if True must provide path to ssl_cafile
+ssl_verify=False
+#ssl_cafile=certs/server.crt
 
-- running benchmarks
-    - From your project root (same place you run pytest)
-    - use `--verbose` to show progress
-
-    - quicker first run:
-        `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 200`
-        - using verbose:
-            `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 200 --verbose`
-                
-
-    - Slow:
-        `python3 -m benchmarks.benchmark_search --mode both`
-
-    - 2 directories are created in the benchmark directory: data & results
+```
+---
 
 ### SSL settings in configuration file
 - breakdown:
@@ -126,21 +117,27 @@
         ```        
         openssl req -x509 -newkey rsa:2048 -keyout certs/server.key -out certs/server.crt -days 365 -nodes -subj "/CN=localhost"
         ```
+---
+### Benchmarks
+- running benchmarks
+    - From your project root (same place you run pytest)
+    - use `--verbose` to show progress
+
+    - quicker first run:
+        `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 200`
+        - using verbose:
+            `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 200 --verbose`
+        - for report-grade data bump the queries eg
+            `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 1000 --verbose`
+                
+
+    - Slow:
+        `python3 -m benchmarks.benchmark_search --mode both`
+
+    - 2 directories are created in the benchmark directory: data & results
 
 
 ---
-## Tasks
-#### 0
-###### [Table of Contents](#table-of-contents)
-### [0. ](./)
-
----
-#### 1
-###### [Table of Contents](#table-of-contents)
-### [1. ](./)
-
----
-
 
 <br></br>
 <div align="right">
