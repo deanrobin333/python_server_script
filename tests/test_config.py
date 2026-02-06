@@ -63,7 +63,7 @@ def test_load_config_defaults(tmp_path: Path) -> None:
     parsed = load_config(cfg)
     assert parsed.linuxpath == Path("/tmp/data.txt")
     assert parsed.reread_on_query is True
-    assert parsed.search_algo == "linear"
+    assert parsed.search_algo == "linear_scan"
 
 
 def test_load_config_parses_reread_on_query_and_algo(tmp_path: Path) -> None:
@@ -73,7 +73,7 @@ def test_load_config_parses_reread_on_query_and_algo(tmp_path: Path) -> None:
             [
                 "linuxpath=/tmp/data.txt",
                 "reread_on_query=False",
-                "search_algo=linear",
+                "search_algo=linear_scan",
             ]
         )
         + "\n",
@@ -82,7 +82,7 @@ def test_load_config_parses_reread_on_query_and_algo(tmp_path: Path) -> None:
 
     parsed = load_config(cfg)
     assert parsed.reread_on_query is False
-    assert parsed.search_algo == "linear"
+    assert parsed.search_algo == "linear_scan"
 
 
 def test_load_config_invalid_bool_raises(tmp_path: Path) -> None:

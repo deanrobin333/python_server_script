@@ -55,7 +55,7 @@ def test_server_responds_with_debug_and_result_line(tmp_path: Path) -> None:
     cfg_file.write_text(
         f"linuxpath={data_file}\n"
         "reread_on_query=True\n"
-        "search_algo=linear\n",
+        "search_algo=linear_scan\n",
         encoding="utf-8",
     )
 

@@ -7,27 +7,27 @@ from pathlib import Path
 
 import pytest
 
-from search import SearchError, line_exists_in_file
+from search import SearchError, search_linear_scan
 
 
 def test_exact_match_found(tmp_path: Path) -> None:
     data = tmp_path / "data.txt"
     data.write_text("alpha\nbeta\ngamma\n", encoding="utf-8")
 
-    assert line_exists_in_file(data, "beta") is True
+    assert search_linear_scan(data, "beta") is True
 
 
 def test_partial_match_not_found(tmp_path: Path) -> None:
     data = tmp_path / "data.txt"
     data.write_text("alpha\nbeta\ngamma\n", encoding="utf-8")
 
-    assert line_exists_in_file(data, "bet") is False
-    assert line_exists_in_file(data, "beta ") is False
-    assert line_exists_in_file(data, "xbeta") is False
-    assert line_exists_in_file(data, "betax") is False
+    assert search_linear_scan(data, "bet") is False
+    assert search_linear_scan(data, "beta ") is False
+    assert search_linear_scan(data, "xbeta") is False
+    assert search_linear_scan(data, "betax") is False
 
 
 def test_missing_file_raises(tmp_path: Path) -> None:
     missing = tmp_path / "missing.txt"
     with pytest.raises(SearchError, match="not found"):
-        line_exists_in_file(missing, "anything")
+        search_linear_scan(missing, "anything")

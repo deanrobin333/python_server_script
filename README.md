@@ -30,6 +30,18 @@
   example:
     python3 -m server --host 127.0.0.1 --port 44445 --config app.conf
 
+- running benchmarks
+    - From your project root (same place you run pytest):
+        `python3 -m benchmarks.benchmark_search --mode both`
+        show progress
+        `python3 -m benchmarks.benchmark_search --mode both --verbose`
+
+    - Or quicker first run:
+        `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 200`
+
+    - 2 directories are created in the benchmark directory: data & results
+
+
 ---
 ## Tasks
 #### 0

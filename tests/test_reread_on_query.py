@@ -13,7 +13,9 @@ def test_reread_true_sees_file_changes(tmp_path: Path) -> None:
     data = tmp_path / "data.txt"
     data.write_text("alpha\n", encoding="utf-8")
 
-    cfg = AppConfig(linuxpath=data, reread_on_query=True, search_algo="linear")
+    cfg = AppConfig(
+        linuxpath=data, reread_on_query=True, search_algo="linear_scan"
+    )
     engine = SearchEngine.from_config(cfg)
 
     assert engine.exists("beta") is False
@@ -32,7 +34,7 @@ def test_reread_false_does_not_see_changes_without_restart(
     data.write_text("alpha\n", encoding="utf-8")
 
     cfg = AppConfig(
-        linuxpath=data, reread_on_query=False, search_algo="linear"
+        linuxpath=data, reread_on_query=False, search_algo="set_cache"
     )
     engine = SearchEngine.from_config(cfg)
     engine.warmup()

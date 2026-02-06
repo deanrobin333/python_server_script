@@ -5,100 +5,127 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional, Union
 
 from config import AppConfig
-from search import SearchError, line_exists_in_file
+from search import (
+    SearchError,
+    build_set_cache,
+    build_sorted_list,
+    search_grep_fx,
+    search_linear_scan,
+    search_mmap_scan,
+    search_set_cache,
+    search_sorted_bisect,
+)
 
 
 class EngineError(RuntimeError):
     """Raised when the search engine cannot operate correctly."""
 
 
+CACHED_ALGOS = {"set_cache", "sorted_bisect"}
+REREAD_ALGOS = {"linear_scan", "mmap_scan", "grep_fx"}
+ALL_ALGOS = CACHED_ALGOS | REREAD_ALGOS
+
+
+CacheType = Union[set[str], list[str]]
+
+
 @dataclass
 class SearchEngine:
-    """
-    Orchestrates searching according to config.
-
-    - reread_on_query=True  -> always read from disk per query
-    - reread_on_query=False -> build an in-memory cache once, then query cache
-    """
-
     file_path: Path
     reread_on_query: bool
     search_algo: str
+    _cache: Optional[CacheType] = None
 
-    # cache for reread_on_query=False (only used for some algorithms)
-    _cached_lines: set[str] | None = None
+    @classmethod
+    def supported_algorithms(cls) -> set[str]:
+        return set(ALL_ALGOS)
 
     @classmethod
     def from_config(cls, cfg: AppConfig) -> "SearchEngine":
-        return cls(
+        engine = cls(
             file_path=cfg.linuxpath,
             reread_on_query=cfg.reread_on_query,
             search_algo=cfg.search_algo,
         )
+        engine._validate_compatibility()
+        return engine
+
+    def _validate_compatibility(self) -> None:
+        if self.search_algo not in ALL_ALGOS:
+            raise EngineError(f"Unsupported search_algo={self.search_algo!r}")
+
+        if self.reread_on_query and self.search_algo in CACHED_ALGOS:
+            raise EngineError(
+                f"search_algo={self.search_algo!r} "
+                f"is not compatible with reread_on_query=True"
+            )
 
     def warmup(self) -> None:
-        """
-        Prepare any caches needed for fast mode (reread_on_query=False).
-        Safe to call multiple times.
-        """
+        """Build cache for cached algorithms
+        (only useful when reread_on_query=False)."""
+        self._validate_compatibility()
+
         if self.reread_on_query:
-            # No caching in this mode.
-            self._cached_lines = None
+            self._cache = None
             return
 
-        # For now, in fast mode we cache all lines into a set for O(1) lookups.
-        # simplest way to meet the 0.5ms target when the file is stable.
         try:
-            self._cached_lines = self._load_lines_as_set(self.file_path)
+            if self.search_algo == "set_cache":
+                self._cache = build_set_cache(self.file_path)
+            elif self.search_algo == "sorted_bisect":
+                self._cache = build_sorted_list(self.file_path)
+            else:
+                """linear/mmap/grep in reread=False do not need cache"""
+                self._cache = None
         except SearchError as exc:
             raise EngineError(str(exc)) from exc
 
     def exists(self, query: str) -> bool:
-        """
-        Return True if query exists as an exact full line in the file.
+        self._validate_compatibility()
 
-        Behavior depends on reread_on_query:
-        - True  -> scan file each time (reflects on-disk changes)
-        - False -> query the cached set (fast)
-        """
-        if self.search_algo != "linear":
-            raise EngineError(
-                f"search_algo={self.search_algo!r} is not implemented yet"
-            )
-
+        # reread_on_query=True -> disk-based every call
         if self.reread_on_query:
-            # Always read from disk (matches current behavior)
-            return line_exists_in_file(self.file_path, query)
+            try:
+                if self.search_algo == "linear_scan":
+                    return search_linear_scan(self.file_path, query)
+                if self.search_algo == "mmap_scan":
+                    return search_mmap_scan(self.file_path, query)
+                if self.search_algo == "grep_fx":
+                    return search_grep_fx(self.file_path, query)
+            except SearchError as exc:
+                raise EngineError(str(exc)) from exc
 
-        # Fast mode: use cache
-        if self._cached_lines is None:
-            # Lazy warmup so the server can start before immediate loading
+            # Defensive: should never hit due to validation
+            raise EngineError(f"Unsupported search_algo={self.search_algo!r}")
+
+        # reread_on_query=False
+        if self.search_algo == "linear_scan":
+            try:
+                return search_linear_scan(self.file_path, query)
+            except SearchError as exc:
+                raise EngineError(str(exc)) from exc
+
+        if self.search_algo in {"mmap_scan", "grep_fx"}:
+            try:
+                if self.search_algo == "mmap_scan":
+                    return search_mmap_scan(self.file_path, query)
+                return search_grep_fx(self.file_path, query)
+            except SearchError as exc:
+                raise EngineError(str(exc)) from exc
+
+        # Cached algos: allow lazy warmup
+        if self._cache is None:
             self.warmup()
 
-        # After warmup, cache must exist
-        if self._cached_lines is None:
-            raise EngineError("Cache not initialized in fast mode")
+        if self.search_algo == "set_cache":
+            assert isinstance(self._cache, set)
+            return search_set_cache(self._cache, query)
 
-        return query in self._cached_lines
+        if self.search_algo == "sorted_bisect":
+            assert isinstance(self._cache, list)
+            return search_sorted_bisect(self._cache, query)
 
-    @staticmethod
-    def _load_lines_as_set(file_path: Path) -> set[str]:
-        """
-        Load all lines from file into a set, stripping trailing newlines.
-        """
-        try:
-            lines: set[str] = set()
-            with file_path.open(
-                "r", encoding="utf-8", errors="replace", newline=""
-            ) as f:
-                for line in f:
-                    lines.add(line.rstrip("\r\n"))
-            return lines
-        except FileNotFoundError as exc:
-            raise SearchError(f"Data file not found: {file_path}") from exc
-        except OSError as exc:
-            raise SearchError(
-                f"Failed reading data file: {file_path} ({exc})"
-            ) from exc
+        raise EngineError(f"Unsupported search_algo={self.search_algo!r}")

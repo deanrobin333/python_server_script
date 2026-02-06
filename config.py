@@ -22,7 +22,7 @@ class AppConfig:
     """
     linuxpath: Path
     reread_on_query: bool = True
-    search_algo: str = "linear"
+    search_algo: str = "linear_scan"
 
 
 def _parse_bool(value: str) -> bool:
@@ -43,7 +43,7 @@ def load_config(config_path: str | Path) -> AppConfig:
     The relevant line starts with:
         linuxpath=/some/path/file.txt
         reread_on_query=True|False
-        search_algo=linear
+        search_algo=linear_scan
 
     Rules:
     - Unknown keys are ignored.
@@ -64,7 +64,7 @@ def load_config(config_path: str | Path) -> AppConfig:
 
     linuxpath: Path | None = None
     reread_on_query: bool = True
-    search_algo: str = "linear"
+    search_algo: str = "linear_scan"
 
     for line in raw.splitlines():
         stripped = line.strip()
@@ -96,8 +96,14 @@ def load_config(config_path: str | Path) -> AppConfig:
     if linuxpath is None:
         raise ConfigError("Missing required config entry: linuxpath=")
 
-    # currently only support 'linear'. We'll extend as we implement more.
-    allowed = {"linear"}
+    allowed = {
+        "linear_scan",
+        "mmap_scan",
+        "grep_fx",
+        "set_cache",
+        "sorted_bisect",
+    }
+
     if search_algo not in allowed:
         raise ConfigError(
             f"Unsupported search_algo={search_algo!r}. "
