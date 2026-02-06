@@ -9,6 +9,9 @@ import sys
 import time
 from pathlib import Path
 
+RESULT_EXISTS = b"STRING EXISTS\n"
+RESULT_NOT_FOUND = b"STRING NOT FOUND\n"
+
 
 def _get_free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -16,14 +19,25 @@ def _get_free_port() -> int:
         return int(s.getsockname()[1])
 
 
-def _recv_all(conn: socket.socket, bufsize: int = 4096) -> bytes:
-    chunks: list[bytes] = []
+def _recv_until_result(conn: socket.socket, bufsize: int = 4096) -> bytes:
+    """
+    Read until we see a terminal result line.
+    Works with persistent connections (no EOF).
+    """
+    buf = b""
     while True:
         part = conn.recv(bufsize)
         if not part:
             break
-        chunks.append(part)
-    return b"".join(chunks)
+        buf += part
+
+        if RESULT_EXISTS in buf or RESULT_NOT_FOUND in buf:
+            break
+
+        if len(buf) > 1024 * 1024:
+            break
+
+    return buf
 
 
 def test_server_returns_exists_for_exact_line(tmp_path: Path) -> None:
@@ -33,7 +47,6 @@ def test_server_returns_exists_for_exact_line(tmp_path: Path) -> None:
     data_file.write_text("one\ntwo\nthree\n", encoding="utf-8")
 
     cfg_file = tmp_path / "app.conf"
-    # cfg_file.write_text(f"linuxpath={data_file}\n", encoding="utf-8")
     cfg_file.write_text(
         f"linuxpath={data_file}\n"
         "reread_on_query=True\n"
@@ -62,8 +75,9 @@ def test_server_returns_exists_for_exact_line(tmp_path: Path) -> None:
         time.sleep(0.3)
 
         with socket.create_connection(("127.0.0.1", port), timeout=3) as s:
+            s.settimeout(3)
             s.sendall(b"two\n")
-            raw = _recv_all(s)
+            raw = _recv_until_result(s)
 
         data = raw.decode("utf-8", errors="replace")
         assert "DEBUG:" in data
@@ -84,7 +98,12 @@ def test_server_returns_not_found_for_partial(tmp_path: Path) -> None:
     data_file.write_text("one\ntwo\nthree\n", encoding="utf-8")
 
     cfg_file = tmp_path / "app.conf"
-    cfg_file.write_text(f"linuxpath={data_file}\n", encoding="utf-8")
+    cfg_file.write_text(
+        f"linuxpath={data_file}\n"
+        "reread_on_query=True\n"
+        "search_algo=linear_scan\n",
+        encoding="utf-8",
+    )
 
     proc = subprocess.Popen(
         [
@@ -107,8 +126,9 @@ def test_server_returns_not_found_for_partial(tmp_path: Path) -> None:
         time.sleep(0.3)
 
         with socket.create_connection(("127.0.0.1", port), timeout=3) as s:
+            s.settimeout(3)
             s.sendall(b"tw\n")
-            raw = _recv_all(s)
+            raw = _recv_until_result(s)
 
         data = raw.decode("utf-8", errors="replace")
         assert "DEBUG:" in data

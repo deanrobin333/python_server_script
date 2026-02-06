@@ -30,11 +30,16 @@
   example:
     `python3 -m server --host 127.0.0.1 --port 44445 --config app.conf`
 
-- running client
-    python3 -m client --host <ip_address> --port <port_no> --config <config_file> "<string_to_search>"
-    example:
-        `python3 -m client --host 127.0.0.1 --port 44445 --config app.conf "11;0;23;16;0;18;3;0;"`
-
+- running as a client
+    - search a single string
+        python3 -m client --host <ip_address> --port <port_no> --config <config_file> "<string_to_search>"
+        example:
+            `python3 -m client --host 127.0.0.1 --port 44445 --config app.conf "11;0;23;16;0;18;3;0;"`
+    - run in interactive mode
+        ```
+        nc 127.0.0.1 44445
+        11;0;23;16;0;18;3;0;
+        ```
 - running client from a different 
     - On primary PC start server using `python3 -m server --host 0.0.0.0 --port 44445 --config app.conf`
     - then on client computer
@@ -110,6 +115,11 @@
     - create a cert including SANs for both (better) if `ssl_verify=True` in config file
         ```    
         openssl req -x509 -newkey rsa:2048 -keyout certs/server.key -out certs/server.crt -days 365 -nodes -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+        ```
+    
+    - Example SAN for a LAN server at 192.168.1.20:
+        ```
+        openssl req -x509 -newkey rsa:2048   -keyout certs/server.key   -out certs/server.crt   -days 365 -nodes   -subj "/CN=myserver"   -addext "subjectAltName=DNS:myserver,IP:192.168.1.20"
         ```
 
     - create a cert without SANs for both if `ssl_verify=False` in config file

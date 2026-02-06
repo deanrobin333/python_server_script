@@ -60,7 +60,10 @@ def generate_data_file(path: Path, lines: int, seed: int = 123) -> list[str]:
     hits: list[str] = []
     with path.open("w", encoding="utf-8", newline="\n") as f:
         for i in range(lines):
-            s = f"{rng.randint(0, 999)};{rng.randint(0, 999)};{i};{rng.randint(0, 999)};"
+            s = (
+                f"{rng.randint(0, 999)};{rng.randint(0, 999)};"
+                f"{i};{rng.randint(0, 999)};"
+            )
             f.write(s + "\n")
             if i % max(1, lines // 100) == 0:
                 hits.append(s)
@@ -70,7 +73,9 @@ def generate_data_file(path: Path, lines: int, seed: int = 123) -> list[str]:
     return hits
 
 
-def make_queries(hits: list[str], total: int, hit_ratio: float = 0.5, seed: int = 456) -> list[str]:
+def make_queries(
+        hits: list[str], total: int, hit_ratio: float = 0.5, seed: int = 456
+) -> list[str]:
     rng = random.Random(seed)
     q: list[str] = []
     for _ in range(total):
@@ -152,7 +157,9 @@ def get_free_port() -> int:
         return int(s.getsockname()[1])
 
 
-def write_temp_config(cfg_path: Path, data_file: Path, reread_on_query: bool, algo: str) -> None:
+def write_temp_config(
+        cfg_path: Path, data_file: Path, reread_on_query: bool, algo: str
+) -> None:
     cfg_path.write_text(
         "\n".join(
             [
@@ -177,7 +184,9 @@ def recv_all(sock: socket.socket, bufsize: int = 4096) -> bytes:
     return b"".join(chunks)
 
 
-def one_request(host: str, port: int, query: str, timeout_s: float = 3.0) -> tuple[bool, float]:
+def one_request(
+        host: str, port: int, query: str, timeout_s: float = 3.0
+) -> tuple[bool, float]:
     t0 = time.perf_counter()
     try:
         with socket.create_connection((host, port), timeout=timeout_s) as s:
@@ -185,7 +194,10 @@ def one_request(host: str, port: int, query: str, timeout_s: float = 3.0) -> tup
             s.sendall((query + "\n").encode("utf-8"))
             raw = recv_all(s)
         text = raw.decode("utf-8", errors="replace")
-        ok = text.endswith("STRING EXISTS\n") or text.endswith("STRING NOT FOUND\n")
+        ok = text.endswith(
+            ("STRING EXISTS\n", "STRING NOT FOUND\n")
+        )
+
         t1 = time.perf_counter()
         return ok, (t1 - t0) * 1000.0
     except Exception:
@@ -328,18 +340,50 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 # ----------------------------
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Benchmark search algorithms and server QPS.")
-    p.add_argument("--outdir", default="benchmarks/results", help="Output directory for CSV results.")
-    p.add_argument("--datadir", default="benchmarks/data", help="Directory to store generated data files.")
-    p.add_argument("--sizes", default="10000,50000,100000,250000,500000,1000000", help="Comma-separated line counts.")
-    p.add_argument("--queries", type=int, default=500, help="Number of queries per algo run.")
-    p.add_argument("--hit-ratio", type=float, default=0.5, help="Fraction of queries that should be hits.")
-    p.add_argument("--algos", default="linear_scan,mmap_scan,grep_fx,set_cache,sorted_bisect", help="Comma-separated algos.")
+    p = argparse.ArgumentParser(
+        description="Benchmark search algorithms and server QPS."
+    )
+    p.add_argument(
+        "--outdir", default="benchmarks/results",
+        help="Output directory for CSV results."
+    )
+    p.add_argument(
+        "--datadir", default="benchmarks/data",
+        help="Directory to store generated data files."
+    )
+    p.add_argument(
+        "--sizes", default="10000,50000,100000,250000,500000,1000000",
+        help="Comma-separated line counts."
+    )
+    p.add_argument(
+        "--queries", type=int, default=500,
+        help="Number of queries per algo run."
+    )
+    p.add_argument(
+        "--hit-ratio", type=float, default=0.5,
+        help="Fraction of queries that should be hits."
+    )
+    p.add_argument(
+        "--algos",
+        default="linear_scan,mmap_scan,grep_fx,set_cache,sorted_bisect",
+        help="Comma-separated algos."
+    )
     p.add_argument("--mode", choices=["algo", "qps", "both"], default="both")
-    p.add_argument("--qps-targets", default="100,250,500,1000,2000", help="Comma-separated QPS targets.")
-    p.add_argument("--qps-duration", type=float, default=5.0, help="Duration seconds per QPS step.")
-    p.add_argument("--clients", type=int, default=50, help="Concurrent client workers for QPS tests.")
-    p.add_argument("--verbose", action="store_true", help="Print progress updates.")
+    p.add_argument(
+        "--qps-targets", default="100,250,500,1000,2000",
+        help="Comma-separated QPS targets."
+    )
+    p.add_argument(
+        "--qps-duration", type=float, default=5.0,
+        help="Duration seconds per QPS step."
+    )
+    p.add_argument(
+        "--clients", type=int, default=50,
+        help="Concurrent client workers for QPS tests."
+    )
+    p.add_argument(
+        "--verbose", action="store_true", help="Print progress updates."
+    )
     return p.parse_args()
 
 
@@ -355,13 +399,16 @@ def main() -> None:
 
     sizes = [int(x.strip()) for x in args.sizes.split(",") if x.strip()]
     algos = [x.strip() for x in args.algos.split(",") if x.strip()]
-    qps_targets = [int(x.strip()) for x in args.qps_targets.split(",") if x.strip()]
+    qps_targets = (
+        [int(x.strip()) for x in args.qps_targets.split(",") if x.strip()]
+    )
 
     # Filter to supported algos if SearchEngine provides it
     supported: set[str] | None = None
     if hasattr(SearchEngine, "supported_algorithms"):
         try:
-            supported = SearchEngine.supported_algorithms()  # type: ignore[attr-defined]
+            # type: ignore[attr-defined]
+            supported = SearchEngine.supported_algorithms()
         except Exception:
             supported = None
 
@@ -375,7 +422,11 @@ def main() -> None:
     est_runs = 0
     for _n in sizes:
         for algo in algos:
-            reread_modes = [True, False] if algo in {"linear_scan", "mmap_scan", "grep_fx"} else [False]
+            reread_modes = (
+                [True, False]
+                if algo in {"linear_scan", "mmap_scan", "grep_fx"}
+                else [False]
+            )
             for reread in reread_modes:
                 if args.mode in {"algo", "both"}:
                     est_runs += 1
@@ -393,16 +444,26 @@ def main() -> None:
     for n in sizes:
         data_file = datadir / f"data_{n}.txt"
         hits = generate_data_file(data_file, n, seed=123)
-        queries = make_queries(hits, total=args.queries, hit_ratio=args.hit_ratio, seed=456)
+        queries = make_queries(
+            hits, total=args.queries, hit_ratio=args.hit_ratio, seed=456
+        )
 
         for algo in algos:
-            reread_modes = [True, False] if algo in {"linear_scan", "mmap_scan", "grep_fx"} else [False]
+            reread_modes = (
+                [True, False]
+                if algo in {"linear_scan", "mmap_scan", "grep_fx"}
+                else [False]
+            )
 
             for reread in reread_modes:
                 if args.mode in {"algo", "both"}:
                     done += 1
                     if args.verbose:
-                        print(f"[{done}/{est_runs}] algo: lines={n} algo={algo} reread={reread}", flush=True)
+                        print(
+                            f"[{done}/{est_runs}] algo: "
+                            f"lines={n} algo={algo} reread={reread}",
+                            flush=True
+                        )
                     try:
                         row = benchmark_algo(data_file, algo, reread, queries)
                     except (EngineError, RuntimeError) as exc:
@@ -432,7 +493,12 @@ def main() -> None:
                     for qps in qps_targets:
                         done += 1
                         if args.verbose:
-                            print(f"[{done}/{est_runs}] qps:  lines={n} algo={algo} reread={reread} qps={qps}", flush=True)
+                            print(
+                                f"[{done}/{est_runs}] qps:  "
+                                f"lines={n} algo={algo} reread={reread} "
+                                f"qps={qps}",
+                                flush=True
+                            )
                         try:
                             row2 = benchmark_server_qps(
                                 data_file=data_file,

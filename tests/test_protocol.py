@@ -4,54 +4,59 @@
 from __future__ import annotations
 
 from pathlib import Path
-import pytest
 
 import socket
 import subprocess
 import sys
 import time
 
-"""
-This test verifies the basic “wire protocol” between client and server:
-1. Server can start and bind a port
-2. A client can connect
-3. Client can send a query string
-4. Server responds with:
-- at least one DEBUG: line
-- and a final result line ending in either:
-  - STRING NOT FOUND or
-  - STRING EXISTS
-"""
+RESULT_EXISTS = b"STRING EXISTS\n"
+RESULT_NOT_FOUND = b"STRING NOT FOUND\n"
 
 
 def _get_free_port() -> int:
-    """get an unused port for the operating system"""
+    """Get an unused port from the operating system."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
         return int(s.getsockname()[1])
 
 
-def _recv_all(conn: socket.socket, bufsize: int = 4096) -> bytes:
-    """Read until the server closes the connection (EOF)."""
-    chunks: list[bytes] = []
+def _recv_until_result(conn: socket.socket, bufsize: int = 4096) -> bytes:
+    """
+    Read until we see a terminal result line.
+    Works with persistent connections (no EOF).
+    """
+    buf = b""
     while True:
         part = conn.recv(bufsize)
         if not part:
             break
-        chunks.append(part)
-    return b"".join(chunks)
+        buf += part
+
+        if RESULT_EXISTS in buf or RESULT_NOT_FOUND in buf:
+            break
+
+        # Safety: avoid infinite growth if something is wrong
+        if len(buf) > 1024 * 1024:
+            break
+
+    return buf
 
 
 def test_server_responds_with_debug_and_result_line(tmp_path: Path) -> None:
-    """the actuall test to be done using pytest"""
+    """
+    Verifies the basic wire protocol:
+      - server starts
+      - client connects
+      - query is sent
+      - response contains DEBUG line and ends with a result line
+    """
     port = _get_free_port()
 
-    # create a dummy data file and config file
     data_file = tmp_path / "data.txt"
     data_file.write_text("hello\n", encoding="utf-8")
 
     cfg_file = tmp_path / "app.conf"
-    # cfg_file.write_text(f"linuxpath={data_file}\n", encoding="utf-8")
     cfg_file.write_text(
         f"linuxpath={data_file}\n"
         "reread_on_query=True\n"
@@ -77,10 +82,8 @@ def test_server_responds_with_debug_and_result_line(tmp_path: Path) -> None:
     )
 
     try:
-        # Give the server a moment to bind.
         time.sleep(0.3)
 
-        # If the process already died, show why.
         rc = proc.poll()
         if rc is not None:
             out, err = proc.communicate(timeout=1)
@@ -91,16 +94,16 @@ def test_server_responds_with_debug_and_result_line(tmp_path: Path) -> None:
                 f"--- stderr ---\n{err}\n"
             )
 
-        """connect as a client and send query"""
         with socket.create_connection(("127.0.0.1", port), timeout=3) as s:
+            s.settimeout(3)
             s.sendall(b"hello\n")
-            raw = _recv_all(s)
+            raw = _recv_until_result(s)
 
         data = raw.decode("utf-8", errors="replace")
 
         assert "DEBUG:" in data, f"Missing DEBUG line. Got: {data!r}"
-        assert data.endswith("STRING NOT FOUND\n") or data.endswith(
-            "STRING EXISTS\n"
+        assert data.endswith(
+            ("STRING NOT FOUND\n", "STRING EXISTS\n")
         ), f"Missing/invalid result line at end. Got: {data!r}"
 
     finally:

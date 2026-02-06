@@ -80,10 +80,7 @@ class TCPStringLookupServer:
         """
         if self._ssl_context is not None:
             try:
-                conn = self._ssl_context.wrap_socket(
-                    conn,
-                    server_side=True,
-                )
+                conn = self._ssl_context.wrap_socket(conn, server_side=True)
             except ssl.SSLError:
                 try:
                     conn.close()
@@ -96,38 +93,76 @@ class TCPStringLookupServer:
     def _handle_client(
         self, conn: socket.socket, addr: tuple[str, int]
     ) -> None:
+        """
+        Persistent connection:
+        - reads newline-delimited queries in a loop
+        - replies per query
+        - does NOT disconnect idle clients (keeps waiting)
+        """
         client_ip, _client_port = addr
-        start = time.perf_counter()
+
+        # use a small timeout so threads can exit when server.stop() is called,
+        # but this does NOT "kick" idle users (we just continue waiting).
+        conn.settimeout(1.0)
+
+        buf = b""
 
         try:
-            conn.settimeout(5.0)
+            while not self._stop_event.is_set():
+                try:
+                    chunk = conn.recv(4096)
+                except socket.timeout:
+                    # No data yet; keep waiting forever (like nc example)
+                    continue
 
-            payload = conn.recv(MAX_PAYLOAD_BYTES)
-            payload = payload.rstrip(b"\x00")
-            query = payload.decode("utf-8", errors="replace").rstrip("\r\n")
+                if not chunk:
+                    # client closed
+                    break
 
-            try:
-                found = self._engine.exists(query)
-            except EngineError:
-                found = False
+                buf += chunk
 
-            elapsed_ms = (time.perf_counter() - start) * 1000.0
-            debug = (
-                f"DEBUG: ip={client_ip} "
-                f"query={query!r} "
-                f"elapsed_ms={elapsed_ms:.3f}\n"
-            )
+                # Process complete lines
+                while b"\n" in buf:
+                    raw_line, buf = buf.split(b"\n", 1)
 
-            conn.sendall(debug.encode("utf-8"))
-            conn.sendall(RESPONSE_EXISTS if found else RESPONSE_NOT_FOUND)
+                    # Trim CRLF and NULLs
+                    raw_line = raw_line.rstrip(b"\r").rstrip(b"\x00")
 
-        except Exception as exc:
-            msg = f"DEBUG: error={type(exc).__name__}: {exc}\n"
-            try:
-                conn.sendall(msg.encode("utf-8"))
-                conn.sendall(RESPONSE_NOT_FOUND)
-            except OSError:
-                pass
+                    # Safety: prevent pathological line growth
+                    if len(raw_line) > MAX_PAYLOAD_BYTES:
+                        msg = (
+                            "DEBUG: error=ValueError: query too long\n"
+                        ).encode("utf-8")
+                        try:
+                            conn.sendall(msg)
+                            conn.sendall(RESPONSE_NOT_FOUND)
+                        except OSError:
+                            return
+                        continue
+
+                    query = raw_line.decode("utf-8", errors="replace")
+
+                    start = time.perf_counter()
+                    try:
+                        found = self._engine.exists(query)
+                    except EngineError:
+                        found = False
+
+                    elapsed_ms = (time.perf_counter() - start) * 1000.0
+                    debug = (
+                        f"DEBUG: ip={client_ip} "
+                        f"query={query!r} "
+                        f"elapsed_ms={elapsed_ms:.3f}\n"
+                    ).encode("utf-8")
+
+                    try:
+                        conn.sendall(debug)
+                        conn.sendall(
+                            RESPONSE_EXISTS if found else RESPONSE_NOT_FOUND
+                        )
+                    except OSError:
+                        return
+
         finally:
             try:
                 conn.close()
@@ -185,11 +220,7 @@ def main() -> None:
     ssl_ctx = _build_server_ssl_context(app_cfg)
 
     cfg = ServerConfig(host=args.host, port=args.port)
-    server = TCPStringLookupServer(
-        cfg,
-        engine=engine,
-        ssl_context=ssl_ctx,
-    )
+    server = TCPStringLookupServer(cfg, engine=engine, ssl_context=ssl_ctx)
 
     try:
         server.start()
