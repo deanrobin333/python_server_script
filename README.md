@@ -39,8 +39,8 @@
 
 - running as a client
     - search a single string
-        python3 -m client --host <ip_address> --port <port_no> --config <config_file> "<string_to_search>"
-        example:
+        `python3 -m client --host <ip_address> --port <port_no> --config <config_file> "<string_to_search>"`
+        - example:
             `python3 -m client --host 127.0.0.1 --port 44445 --config app.conf "11;0;23;16;0;18;3;0;"`
     - run in interactive mode
         ```
