@@ -7,13 +7,13 @@
 ## Table of Contents
 1. [Author Details](#author-details)
 2. [Project Overview](#Project-Overview)
-3. [Architecture & Design](#Architecture-&-Design)
+3. [Architecture and Design](#Architecture-and-Design)
 4. [Requirements](#Requirements)
 5. [Running the Server and Client](#Running-the-Server-and-Client)
 6. [Configuration File](#Configuration-File)
 7. [Search Algorithms](#Search-Algorithms)
 8. [SSL or TLS Support](#SSL-or-TLS-Support)
-9. [Running as a Daemon (systemd)](#Running-as-a-Daemon-(systemd))
+9. [Running as a Daemon (systemd)](#Running-as-a-Daemon)
 10. [Benchmarking](#Benchmarking)
 11. [Testing](#Testing)
 12. [Limitations and Notes](#Limitations-and-Notes)
@@ -66,7 +66,7 @@
 
 * * *
 
-## Architecture & Design
+## Architecture and Design
 ###### [Table of Contents](#table-of-contents)
 
 **Core components:**
@@ -249,7 +249,8 @@
 
 * * *
 
-## Running as a Daemon (systemd)
+## Running as a Daemon 
+**systemd**
 ###### [Table of Contents](#table-of-contents)
 
 - Service file: `tcp-string-lookup.service`
@@ -291,8 +292,8 @@
 - Run benchmarks:
     - quicker first run:
 	  - `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 1000 --verbose`	   
-	    - run for 200 queries
-			- `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 200`
+    - run for 200 queries
+        - `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 200`
                 
     - Slow:
         - `python3 -m benchmarks.benchmark_search --mode both`
