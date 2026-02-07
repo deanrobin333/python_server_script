@@ -273,11 +273,11 @@
     - `certs/server.crt` (this acts as the CA file for verification in your design)
 
 - Example:
-```
-scp certs/server.crt user@SECONDARY:/path/to/project/certs/
-scp certs/server.key user@SECONDARY:/path/to/project/certs/   # only if server runs there
+	```
+	scp certs/server.crt user@SECONDARY:/path/to/project/certs/
+	scp certs/server.key user@SECONDARY:/path/to/project/certs/   # only if server runs there
 
-```
+	```
 
 
 ##### C) Turn SSL on/off via config
