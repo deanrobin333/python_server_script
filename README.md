@@ -238,6 +238,82 @@
         openssl req -x509 -newkey rsa:2048 -keyout certs/server.key -out certs/server.crt -days 365 -nodes -subj "/CN=localhost"
         ```
 
+### Detailed instructions to use SSL
+#### SSL: clean “primary → secondary computer” breakdown
+
+- current SSL support is **server-side TLS**, and the client can optionally **verify** the server cert (not mutual TLS). 
+
+##### A) On the primary computer (where you generate certs)
+
+- Option 1 (fastest): self-signed server cert 
+	```
+	mkdir -p certs
+	
+	openssl req -x509 -newkey rsa:2048 -keyout certs/server.key -out certs/server.crt -days 365 -nodes -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+	```
+	
+	
+	- If the server will be accessed via LAN IP (example `192.168.1.20`), generate with that SAN:
+	
+		```
+		openssl req -x509 -newkey rsa:2048 -keyout certs/server.key -out certs/server.crt -days 365 -nodes -subj "/CN=localhost" -addext "subjectAltName=DNS:myserver,IP:192.168.1.20"
+		````
+
+
+##### B) Copy needed files to the secondary computer
+
+- If you will run the **server on secondary**: copy **both**
+    
+    - `certs/server.crt`
+        
+    - `certs/server.key`
+        
+- If you will run the **client on secondary** and want verification: copy **only**
+    
+    - `certs/server.crt` (this acts as the CA file for verification in your design)
+
+- Example:
+```
+scp certs/server.crt user@SECONDARY:/path/to/project/certs/
+scp certs/server.key user@SECONDARY:/path/to/project/certs/   # only if server runs there
+
+```
+
+
+##### C) Turn SSL on/off via config
+
+- In `app.conf`:
+
+	1) TLS ON + verification OFF (encryption only - Server side:
+		```
+		ssl_enabled=True
+		ssl_certfile=certs/server.crt
+		ssl_keyfile=certs/server.key
+		
+		ssl_verify=False
+		```
+
+	 2) TLS ON + verification ON (recommended)
+	    - Server side:
+			```
+			ssl_enabled=True
+			ssl_certfile=certs/server.crt
+			ssl_keyfile=certs/server.key
+			```
+
+		- Client side:
+			```
+			ssl_verify=True
+			ssl_cafile=certs/server.crt
+			
+			```
+
+
+	3) TLS OFF
+		```
+		ssl_enabled=False
+		```
+
 ### Summary
 
 - `ssl_enabled=True` → TLS enabled
