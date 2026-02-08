@@ -314,6 +314,8 @@
 		ssl_enabled=False
 		```
 
+
+
 ### Summary
 
 - `ssl_enabled=True` → TLS enabled
@@ -330,12 +332,6 @@
 ###### [Table of Contents](#table-of-contents)
 
 - Service file: `tcp-string-lookup.service`
-    - in the service file set this variables
-        - if you created the user `tcpstring` uncomment this or set yours
-            - #User=tcpstring
-            - #Group=tcpstring
-        - `WorkingDirectory=`
-        - `ReadWritePaths=`
 
 - Key steps:
 
