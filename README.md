@@ -33,7 +33,7 @@
 
 ## 2 Project Overview
 ###### [Table of Contents](#table-of-contents)
-
+- A short end-to-end walkthrough video of the program being used and setting up SSL can be [watched here](https://drive.google.com/file/d/1TRrCKagyFCWvnVBwOy4Rq7SrrmU_U3Gc/view?usp=drive_link)
 - This project implements a **high-performance TCP server** that:
 
 	- Runs continuously
