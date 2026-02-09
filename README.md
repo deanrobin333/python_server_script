@@ -13,7 +13,7 @@
 6. [Configuration File](#Configuration-File)
 7. [Search Algorithms](#Search-Algorithms)
 8. [SSL or TLS Support](#SSL-or-TLS-Support)
-9. [🔐 Enabling and Using SSL/TLS](#enabling-and-using-ssltls)
+9. [🔐 Enabling and Using SSL/TLS](#Enabling-and-Using-SSL)
 10. [Running as a Daemon (systemd)](#Running-as-a-Daemon)
 11. [Benchmarking](#Benchmarking)
 12. [Testing](#Testing)
@@ -249,7 +249,7 @@
     
 
 * * *
-## 🔐 Enabling and Using SSL/TLS
+## 🔐 Enabling and Using SSL
 
 This server supports **TLS-encrypted connections** to protect data in transit between the client and the server. This section explains, step by step, how to generate certificates, configure the server, and connect securely from a client machine.
 
