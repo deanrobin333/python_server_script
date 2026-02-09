@@ -13,10 +13,11 @@
 6. [Configuration File](#Configuration-File)
 7. [Search Algorithms](#Search-Algorithms)
 8. [SSL or TLS Support](#SSL-or-TLS-Support)
-9. [Running as a Daemon (systemd)](#Running-as-a-Daemon)
-10. [Benchmarking](#Benchmarking)
-11. [Testing](#Testing)
-12. [Limitations and Notes](#Limitations-and-Notes)
+9. [🔐 Enabling and Using SSL/TLS](#enabling-and-using-ssltls)
+10. [Running as a Daemon (systemd)](#Running-as-a-Daemon)
+11. [Benchmarking](#Benchmarking)
+12. [Testing](#Testing)
+13. [Limitations and Notes](#Limitations-and-Notes)
     
 
 * * *
