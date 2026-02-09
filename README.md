@@ -249,7 +249,8 @@
     
 
 * * *
-## 🔐 Enabling and Using SSL
+## Enabling and Using SSL
+###### [Table of Contents](#table-of-contents)
 
 This server supports **TLS-encrypted connections** to protect data in transit between the client and the server. This section explains, step by step, how to generate certificates, configure the server, and connect securely from a client machine.
 
