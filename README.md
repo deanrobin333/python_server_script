@@ -7,13 +7,14 @@
 ## Table of Contents
 1. [Author Details](#1-author-details)
 2. [Project Overview](#2-Project-Overview)
+3. [3 Code Quality and Standards](#3-Code-Quality-and-Standards)
 3. [Architecture and Design](#3-Architecture-and-Design)
 4. [Requirements](#4-Requirements)
 5. [Running the Server and Client](#5-Running-the-Server-and-Client)
 6. [Configuration File](#6-Configuration-File)
 7. [Search Algorithms](#7-Search-Algorithms)
 8. [SSL or TLS Support](#8-SSL-or-TLS-Support)
-9. [🔐 Enabling and Using SSL/TLS](#9-Enabling-and-Using-SSL)
+9. [🔐 Step by Step SSL setup](#9-Step-by-Step-SSL-setup)
 10. [Running as a Daemon (systemd)](#10-Running-as-a-Daemon)
 11. [Benchmarking](#11-Benchmarking)
 12. [Testing](#12-Testing)
@@ -67,7 +68,22 @@
 
 * * *
 
-## 3 Architecture and Design
+## 3 Code Quality and Standards
+
+- All modules and public functions are documented using **Google-style docstrings**
+- Code follows **PEP8** formatting and **PEP20** design principles
+- Configuration parsing is strict and validated at startup
+- Errors are surfaced with clear, user-facing messages
+- Tests are written using `pytest` and cover:
+  - Configuration validation
+  - Search correctness
+  - reread_on_query behavior
+  - Server/client integration
+  - TLS portability
+
+* * *
+
+## 4 Architecture and Design
 ###### [Table of Contents](#table-of-contents)
 
 **Core components:**
@@ -98,7 +114,7 @@
 
 * * *
 
-## 4 Requirements
+## 5 Requirements
 ###### [Table of Contents](#table-of-contents)
 
 - Python **3.10+**
@@ -118,7 +134,7 @@
 
 * * *
 
-## 5 Running the Server and Client
+## 6 Running the Server and Client
 ###### [Table of Contents](#table-of-contents)
 
 > All commands should be run from the **project root** (`python_server_script/`).
@@ -147,14 +163,17 @@
 
 - On client machine:
 
-	- `nc <SERVER_IP> 444453;0;1;28;0;7;5;0;`
+	```
+	nc <SERVER_IP> 444453
+	0;1;28;0;7;5;0;
+	```
 
 * * *
 
-## 6 Configuration File
+## 7 Configuration File
 ###### [Table of Contents](#table-of-contents)
 
-- Example `app.conf`: - set the `linxpath`
+- Example `app.conf`: - set the `linuxpath`
 	```
 	# Unknown keys are ignored
 	foo=deanovo
@@ -184,7 +203,7 @@
 
 * * *
 
-## 7 Search Algorithms
+## 8 Search Algorithms
 ###### [Table of Contents](#table-of-contents)
 
 | Algorithm | Mode | Description |
@@ -199,7 +218,7 @@
 
 * * *
 
-## 8 SSL or TLS Support
+## 9 SSL or TLS overview
 ###### [Table of Contents](#table-of-contents)
 
 ### Overview
@@ -249,7 +268,7 @@
     
 
 * * *
-## 9 Enabling and Using SSL
+## 10 Step by Step SSL setup
 ###### [Table of Contents](#table-of-contents)
 
 This server supports **TLS-encrypted connections** to protect data in transit between the client and the server. This section explains, step by step, how to generate certificates, configure the server, and connect securely from a client machine.
@@ -274,8 +293,8 @@ This server supports **TLS-encrypted connections** to protect data in transit be
 	- If using a **self-signed certificate**, copy `server.crt` to the client and use it as the trust anchor via `-CAfile`
 	    
 
-> ⚠️ The client **does NOT** use `app.conf`.  
-> `app.conf` is strictly a **server-side configuration file**.
+> ⚠️ `app.conf` is primarily a server-side configuration file.
+> The client may optionally read SSL-related settings from it when `--config` is provided.
 
 * * *
 
@@ -468,7 +487,7 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-## 10 Running as a Daemon 
+## 11 Running as a Daemon 
 **systemd**
 ###### [Table of Contents](#table-of-contents)
 
@@ -505,7 +524,7 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-## 11 Benchmarking
+## 12 Benchmarking
 ###### [Table of Contents](#table-of-contents)
 - Benchmarking report available in the file
     -`Benchmark_report-TCP_String_Lookup_server-python_server_script`
@@ -545,7 +564,7 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-## 12 Testing
+## 13 Testing
 ###### [Table of Contents](#table-of-contents)
 
 - Run all tests:
@@ -567,7 +586,7 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-## 13 Limitations and Notes
+## 14 Limitations and Notes
 ###### [Table of Contents](#table-of-contents)
 
 - No authentication/authorization beyond TLS

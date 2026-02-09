@@ -1,5 +1,17 @@
 #!/usr/bin/python3
-# search.py
+"""
+Search algorithms for exact full-line string lookup.
+
+This module provides multiple strategies for determining whether a given query
+string exists as an exact line in a text file.
+
+Design goals:
+- Exact full-line matching only (no substring matches).
+- Support both per-query file rereads and cached/in-memory modes.
+- Provide algorithms with different trade-offs for performance and memory use.
+
+Errors are surfaced as SearchError with context.
+"""
 
 from __future__ import annotations
 
@@ -15,9 +27,21 @@ class SearchError(RuntimeError):
 
 
 def search_linear_scan(file_path: Path, query: str) -> bool:
-    """
-    Exact full-line match: returns True only if a line equals `query`.
-    Reads file sequentially each call.
+    """Search by sequentially scanning the file for an exact line match.
+
+    This function reads the file line by line on each call and
+    returns True only
+    if a line equals the query (after stripping line terminators).
+
+    Args:
+        file_path: Path to the data file.
+        query: Query string to match against full lines.
+
+    Returns:
+        True if an exact full-line match is found, otherwise False.
+
+    Raises:
+        SearchError: If the file cannot be read.
     """
     try:
         with file_path.open(
@@ -36,7 +60,20 @@ def search_linear_scan(file_path: Path, query: str) -> bool:
 
 
 def build_set_cache(file_path: Path) -> set[str]:
-    """Load all lines into a set for fast membership testing."""
+    """Build a set cache of all lines in the file.
+
+    The resulting set enables fast membership checks with `query in cache`.
+
+    Args:
+        file_path: Path to the data file.
+
+    Returns:
+        A set containing all lines from the file
+        (with line terminators stripped).
+
+    Raises:
+        SearchError: If the file cannot be read.
+    """
     try:
         lines: set[str] = set()
         with file_path.open(
@@ -54,12 +91,33 @@ def build_set_cache(file_path: Path) -> set[str]:
 
 
 def search_set_cache(cache: set[str], query: str) -> bool:
-    """Search using a pre-built set cache."""
+    """Search for a query in a pre-built set cache.
+
+    Args:
+        cache: Set of lines built from the data file.
+        query: Query string to check.
+
+    Returns:
+        True if the query exists in the cache, otherwise False.
+    """
     return query in cache
 
 
 def build_sorted_list(file_path: Path) -> list[str]:
-    """Load all lines, strip newlines, sort for binary-search membership."""
+    """Build a sorted list of all lines in the file.
+
+    The resulting list supports binary-search membership checks.
+
+    Args:
+        file_path: Path to the data file.
+
+    Returns:
+        A sorted list containing all lines from the file (with line terminators
+        stripped).
+
+    Raises:
+        SearchError: If the file cannot be read.
+    """
     try:
         lines: list[str] = []
         with file_path.open(
@@ -78,22 +136,38 @@ def build_sorted_list(file_path: Path) -> list[str]:
 
 
 def search_sorted_bisect(sorted_lines: list[str], query: str) -> bool:
-    """Binary search membership in a sorted list."""
+    """Search for a query using binary search on a sorted list.
+
+    Args:
+        sorted_lines: Sorted list of file lines.
+        query: Query string to locate.
+
+    Returns:
+        True if the query exists as an exact element in the list, otherwise
+        False.
+    """
     idx = bisect_left(sorted_lines, query)
     return idx < len(sorted_lines) and sorted_lines[idx] == query
 
 
-# ----------------------------
-# Algorithms best for reread_on_query=True
-# ----------------------------
-
 def search_mmap_scan(file_path: Path, query: str) -> bool:
-    """
-    Exact full-line match using memory-mapped file.
+    """Search using a memory-mapped file scan with boundary validation.
 
-    - Does NOT read the entire file into Python (no mm.read(), no split()).
-    - Finds query bytes and validates line boundaries to avoid partial matches.
-    - Handles both \\n and \\r\\n files.
+    This algorithm:
+    - Does not read the entire file into Python objects (no full read/split).
+    - Finds the query bytes and validates line boundaries to avoid partial
+      matches.
+    - Handles both LF and CRLF line endings.
+
+    Args:
+        file_path: Path to the data file.
+        query: Query string to match against full lines.
+
+    Returns:
+        True if an exact full-line match is found, otherwise False.
+
+    Raises:
+        SearchError: If the file cannot be read or memory-mapped.
     """
     try:
         q = query.encode("utf-8")
@@ -101,7 +175,7 @@ def search_mmap_scan(file_path: Path, query: str) -> bool:
             return False
 
         with file_path.open("rb") as f:
-            # If file is empty, mmap of size 0 fails; handle explicitly.
+            # If the file is empty, mmap of size 0 fails; handle explicitly.
             try:
                 mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
             except ValueError:
@@ -116,22 +190,22 @@ def search_mmap_scan(file_path: Path, query: str) -> bool:
                     if pos == -1:
                         return False
 
-                    before_ok = (pos == 0) or (mm[pos - 1:pos] == b"\n")
+                    before_ok = (pos == 0) or (mm[pos - 1: pos] == b"\n")
 
                     after_pos = pos + len(q)
                     if after_pos == n:
                         after_ok = True  # EOF boundary
                     else:
-                        nxt = mm[after_pos:after_pos + 1]
+                        nxt = mm[after_pos: after_pos + 1]
                         if nxt == b"\n":
                             after_ok = True
                         elif nxt == b"\r":
-                            # accept CRLF: must be followed by '\n' OR be EOF
+                            # Accept CRLF: must be followed by '\n' or be EOF.
                             if after_pos + 1 == n:
                                 after_ok = True
                             else:
                                 after_ok = (
-                                    mm[after_pos + 1:after_pos + 2] == b"\n"
+                                    mm[after_pos + 1: after_pos + 2] == b"\n"
                                 )
                         else:
                             after_ok = False
@@ -139,7 +213,6 @@ def search_mmap_scan(file_path: Path, query: str) -> bool:
                     if before_ok and after_ok:
                         return True
 
-                    # Continue searching after this occurrence
                     start = pos + 1
 
     except FileNotFoundError as exc:
@@ -147,14 +220,26 @@ def search_mmap_scan(file_path: Path, query: str) -> bool:
     except OSError as exc:
         raise SearchError(
             f"Failed mmap reading data file: {file_path} ({exc})"
-            ) from exc
+        ) from exc
 
 
 def search_grep_fx(file_path: Path, query: str) -> bool:
-    """
-    Exact full-line match using GNU grep (-F -x).
+    """Search using GNU grep for an exact full-line match.
 
-    Spawns a subprocess per query (safe for reread_on_query=True).
+    Uses `grep -F -x` to match the query as a fixed string (-F) and require the
+    whole line to match (-x).
+    This spawns a subprocess per query, which can be a
+    reasonable approach when rereading the file per query is acceptable.
+
+    Args:
+        file_path: Path to the data file.
+        query: Query string to match against full lines.
+
+    Returns:
+        True if grep finds an exact matching line, otherwise False.
+
+    Raises:
+        SearchError: If grep is unavailable or cannot be executed.
     """
     try:
         result = subprocess.run(

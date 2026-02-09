@@ -1,16 +1,19 @@
 #!/usr/bin/python3
-# __main__.py
+"""
+Package entry point.
+
+This module defines the behavior when the package is executed as a script
+using:
+
+    python3 -m python_server_script
+
+It delegates execution to the server's main() function.
+"""
 
 from __future__ import annotations
 
 from .server import main
 
-"""
-- defines how the package behaves when it is executed, not imported.
-- In other words, it answers:
-  - “What should happen when someone runs
-     python -m python_server_script ?”
-"""
 
 if __name__ == "__main__":
     main()

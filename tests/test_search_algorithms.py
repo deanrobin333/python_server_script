@@ -1,5 +1,12 @@
 #!/usr/bin/python3
-# tests/test_search_algorithms.py
+"""
+Tests for search algorithm correctness and consistency.
+
+These tests ensure that all search algorithms:
+- Perform exact full-line matching (no partial matches).
+- Behave consistently across different implementations.
+- Respect reread_on_query semantics when used via SearchEngine.
+"""
 
 from __future__ import annotations
 
@@ -14,27 +21,30 @@ from search import (
     search_set_cache,
     search_sorted_bisect,
 )
-
 from config import AppConfig
 from search_engine import SearchEngine
 
 
 @pytest.mark.parametrize(
-    "query, expected", [("beta", True), ("bet", False), ("beta ", False)]
+    "query, expected",
+    [("beta", True), ("bet", False), ("beta ", False)],
 )
 def test_algorithms_exact_match_consistency(
-    tmp_path: Path, query: str, expected: bool
+    tmp_path: Path,
+    query: str,
+    expected: bool,
 ) -> None:
+    """Ensure all algorithms enforce exact full-line matching."""
     data = tmp_path / "data.txt"
     data.write_text("alpha\nbeta\ngamma\n", encoding="utf-8")
 
     assert search_linear_scan(data, query) is expected
 
-    s = build_set_cache(data)
-    assert search_set_cache(s, query) is expected
+    cache = build_set_cache(data)
+    assert search_set_cache(cache, query) is expected
 
-    lst = build_sorted_list(data)
-    assert search_sorted_bisect(lst, query) is expected
+    sorted_lines = build_sorted_list(data)
+    assert search_sorted_bisect(sorted_lines, query) is expected
 
 
 @pytest.mark.parametrize(
@@ -42,6 +52,7 @@ def test_algorithms_exact_match_consistency(
     ["linear_scan", "mmap_scan", "grep_fx"],
 )
 def test_reread_algorithms_consistency(tmp_path: Path, algo: str) -> None:
+    """Ensure reread-based algorithms behave consistently via SearchEngine."""
     data = tmp_path / "data.txt"
     data.write_text("alpha\nbeta\ngamma\n", encoding="utf-8")
 

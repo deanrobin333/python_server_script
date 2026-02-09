@@ -1,5 +1,13 @@
 #!/usr/bin/python3
-# test_config.py
+"""
+Configuration parsing tests.
+
+These tests validate that load_config():
+- Parses required keys from noisy config files.
+- Applies defaults correctly.
+- Rejects missing/empty required values.
+- Validates booleans and supported algorithm names.
+"""
 
 from __future__ import annotations
 
@@ -11,6 +19,7 @@ from config import AppConfig, ConfigError, load_config
 
 
 def test_load_config_parses_linuxpath_among_noise(tmp_path: Path) -> None:
+    """Ensure linuxpath is parsed even when surrounded by irrelevant keys."""
     cfg = tmp_path / "app.conf"
     cfg.write_text(
         "\n".join(
@@ -31,6 +40,7 @@ def test_load_config_parses_linuxpath_among_noise(tmp_path: Path) -> None:
 
 
 def test_load_config_missing_linuxpath_raises(tmp_path: Path) -> None:
+    """Ensure missing linuxpath triggers a ConfigError."""
     cfg = tmp_path / "app.conf"
     cfg.write_text("foo=bar\nbaz=qux\n", encoding="utf-8")
 
@@ -39,6 +49,7 @@ def test_load_config_missing_linuxpath_raises(tmp_path: Path) -> None:
 
 
 def test_load_config_empty_linuxpath_raises(tmp_path: Path) -> None:
+    """Ensure an empty linuxpath value triggers a ConfigError."""
     cfg = tmp_path / "app.conf"
     cfg.write_text("linuxpath=\n", encoding="utf-8")
 
@@ -47,16 +58,15 @@ def test_load_config_empty_linuxpath_raises(tmp_path: Path) -> None:
 
 
 def test_load_config_file_not_found_raises(tmp_path: Path) -> None:
+    """Ensure missing config files raise ConfigError with a clear message."""
     cfg = tmp_path / "missing.conf"
 
     with pytest.raises(ConfigError, match="not found"):
         load_config(cfg)
 
 
-"""Additional tests with reread_on_query implemented"""
-
-
 def test_load_config_defaults(tmp_path: Path) -> None:
+    """Ensure defaults are applied when optional keys are absent."""
     cfg = tmp_path / "app.conf"
     cfg.write_text("linuxpath=/tmp/data.txt\n", encoding="utf-8")
 
@@ -67,6 +77,7 @@ def test_load_config_defaults(tmp_path: Path) -> None:
 
 
 def test_load_config_parses_reread_on_query_and_algo(tmp_path: Path) -> None:
+    """Ensure reread_on_query and search_algo are parsed correctly."""
     cfg = tmp_path / "app.conf"
     cfg.write_text(
         "\n".join(
@@ -86,6 +97,7 @@ def test_load_config_parses_reread_on_query_and_algo(tmp_path: Path) -> None:
 
 
 def test_load_config_invalid_bool_raises(tmp_path: Path) -> None:
+    """Ensure invalid boolean values raise ConfigError."""
     cfg = tmp_path / "app.conf"
     cfg.write_text(
         "\n".join(
@@ -103,6 +115,7 @@ def test_load_config_invalid_bool_raises(tmp_path: Path) -> None:
 
 
 def test_load_config_unsupported_search_algo_raises(tmp_path: Path) -> None:
+    """Ensure unsupported search_algo values raise ConfigError."""
     cfg = tmp_path / "app.conf"
     cfg.write_text(
         "\n".join(

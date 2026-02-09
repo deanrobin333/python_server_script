@@ -1,5 +1,19 @@
 #!/usr/bin/python3
-# benchmarks/benchmark_search.py
+"""
+Benchmarking utilities for search algorithms and end-to-end server latency/QPS.
+
+This script supports two primary benchmarking modes:
+
+1) Algorithm benchmarks (direct calls to SearchEngine.exists):
+   - Measures per-query latency statistics (avg, p50, p95, min, max).
+
+2) Server QPS benchmarks (end-to-end TCP requests):
+   - Starts the TCP server as a subprocess using a temporary config.
+   - Sends requests using multiple concurrent clients.
+   - Measures achieved QPS and latency percentiles.
+
+Results are written as CSV files to the chosen output directory.
+"""
 
 from __future__ import annotations
 
@@ -19,11 +33,16 @@ from config import AppConfig
 from search_engine import EngineError, SearchEngine
 
 
-# ----------------------------
-# Utilities
-# ----------------------------
-
 def percentile(values: list[float], pct: float) -> float:
+    """Compute a simple percentile value from a list.
+
+    Args:
+        values: List of numeric values.
+        pct: Percentile to compute (0-100).
+
+    Returns:
+        The percentile value, or 0.0 for an empty input list.
+    """
     if not values:
         return 0.0
     values_sorted = sorted(values)
@@ -33,26 +52,46 @@ def percentile(values: list[float], pct: float) -> float:
 
 
 def now_ts() -> str:
+    """Return a human-readable timestamp."""
     return time.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def ensure_dir(p: Path) -> None:
+    """Create a directory (and parents) if missing.
+
+    Args:
+        p: Directory path to create.
+    """
     p.mkdir(parents=True, exist_ok=True)
 
 
 def count_lines(path: Path) -> int:
+    """Count the number of lines in a text file.
+
+    Args:
+        path: Path to the file.
+
+    Returns:
+        The number of lines in the file.
+    """
     with path.open("r", encoding="utf-8", errors="replace") as f:
         return sum(1 for _ in f)
 
 
-# ----------------------------
-# Data generation
-# ----------------------------
-
 def generate_data_file(path: Path, lines: int, seed: int = 123) -> list[str]:
-    """
-    Generate a deterministic file with `lines` lines.
-    Returns a list of sample "hit" queries from within the file.
+    """Generate a deterministic data file and return sample hit queries.
+
+    The generated file uses newline separators and contains deterministic rows
+    based on a PRNG seed. A subset of lines are returned as "hits" so benchmark
+    query generation can mix hits and misses.
+
+    Args:
+        path: Output file path.
+        lines: Number of lines to generate.
+        seed: Random seed for deterministic generation.
+
+    Returns:
+        A list of sample "hit" strings that are present in the file.
     """
     rng = random.Random(seed)
     ensure_dir(path.parent)
@@ -74,8 +113,22 @@ def generate_data_file(path: Path, lines: int, seed: int = 123) -> list[str]:
 
 
 def make_queries(
-        hits: list[str], total: int, hit_ratio: float = 0.5, seed: int = 456
+    hits: list[str],
+    total: int,
+    hit_ratio: float = 0.5,
+    seed: int = 456,
 ) -> list[str]:
+    """Create a mixed list of hit and miss queries.
+
+    Args:
+        hits: Known-hit query strings that exist in the data file.
+        total: Total number of queries to generate.
+        hit_ratio: Fraction of queries that should be hits.
+        seed: PRNG seed for deterministic generation.
+
+    Returns:
+        A list of query strings.
+    """
     rng = random.Random(seed)
     q: list[str] = []
     for _ in range(total):
@@ -87,6 +140,15 @@ def make_queries(
 
 
 def generate_hits_from_file(path: Path, max_hits: int = 200) -> list[str]:
+    """Load a small number of lines from a file to use as hit queries.
+
+    Args:
+        path: Path to the data file.
+        max_hits: Maximum number of hit strings to collect.
+
+    Returns:
+        A list of hit strings read from the file (line terminators stripped).
+    """
     hits: list[str] = []
     with path.open("r", encoding="utf-8", errors="replace") as f:
         for i, line in enumerate(f):
@@ -96,16 +158,30 @@ def generate_hits_from_file(path: Path, max_hits: int = 200) -> list[str]:
     return hits
 
 
-# ----------------------------
-# Algo benchmark (direct engine.exists)
-# ----------------------------
-
 def benchmark_algo(
     file_path: Path,
     algo: str,
     reread_on_query: bool,
     queries: list[str],
 ) -> dict[str, Any]:
+    """Benchmark per-query latency for a given algorithm and mode.
+
+    This uses SearchEngine.exists directly (no TCP), collecting per-query
+    durations and summary statistics.
+
+    Args:
+        file_path: Data file path.
+        algo: Algorithm name.
+        reread_on_query: Whether to re-read the file per query.
+        queries: Query strings to execute.
+
+    Returns:
+        A results dictionary suitable for CSV export.
+
+    Raises:
+        EngineError: If the engine fails to initialize or execute.
+        RuntimeError: For unexpected runtime failures.
+    """
     cfg = AppConfig(
         linuxpath=file_path,
         reread_on_query=reread_on_query,
@@ -119,7 +195,6 @@ def benchmark_algo(
     durations_ms: list[float] = []
     hits = 0
 
-    # micro warmup
     for q in queries[:10]:
         engine.exists(q)
 
@@ -147,19 +222,31 @@ def benchmark_algo(
     }
 
 
-# ----------------------------
-# Server/QPS benchmark (end-to-end TCP)
-# ----------------------------
-
 def get_free_port() -> int:
+    """Return a free ephemeral port bound on localhost.
+
+    Returns:
+        An available TCP port number.
+    """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
         return int(s.getsockname()[1])
 
 
 def write_temp_config(
-        cfg_path: Path, data_file: Path, reread_on_query: bool, algo: str
+    cfg_path: Path,
+    data_file: Path,
+    reread_on_query: bool,
+    algo: str,
 ) -> None:
+    """Write a temporary config file for starting the benchmark server.
+
+    Args:
+        cfg_path: Output path for the temporary config.
+        data_file: Data file path to embed in the config.
+        reread_on_query: Whether the server should reread the file per query.
+        algo: Algorithm name to set in config.
+    """
     cfg_path.write_text(
         "\n".join(
             [
@@ -175,6 +262,15 @@ def write_temp_config(
 
 
 def recv_all(sock: socket.socket, bufsize: int = 4096) -> bytes:
+    """Receive all data until the server closes the connection.
+
+    Args:
+        sock: Connected socket.
+        bufsize: Bytes per recv() call.
+
+    Returns:
+        All bytes read from the socket.
+    """
     chunks: list[bytes] = []
     while True:
         part = sock.recv(bufsize)
@@ -185,18 +281,36 @@ def recv_all(sock: socket.socket, bufsize: int = 4096) -> bytes:
 
 
 def one_request(
-        host: str, port: int, query: str, timeout_s: float = 3.0
+    host: str,
+    port: int,
+    query: str,
+    timeout_s: float = 3.0,
 ) -> tuple[bool, float]:
+    """Send one TCP request and measure end-to-end latency.
+
+    The request opens a new connection, sends one query, reads the entire
+    response, and returns whether a well-formed response terminator is present.
+
+    Args:
+        host: Server host to connect to.
+        port: Server port to connect to.
+        query: Query string (without newline).
+        timeout_s: Timeout for connect and socket operations.
+
+    Returns:
+        A tuple of:
+        - ok: True if the response ends with a valid result line.
+        - latency_ms: End-to-end duration in milliseconds.
+    """
     t0 = time.perf_counter()
     try:
         with socket.create_connection((host, port), timeout=timeout_s) as s:
             s.settimeout(timeout_s)
             s.sendall((query + "\n").encode("utf-8"))
             raw = recv_all(s)
+
         text = raw.decode("utf-8", errors="replace")
-        ok = text.endswith(
-            ("STRING EXISTS\n", "STRING NOT FOUND\n")
-        )
+        ok = text.endswith(("STRING EXISTS\n", "STRING NOT FOUND\n"))
 
         t1 = time.perf_counter()
         return ok, (t1 - t0) * 1000.0
@@ -214,6 +328,27 @@ def benchmark_server_qps(
     clients: int,
     tmp_dir: Path,
 ) -> dict[str, Any]:
+    """Benchmark end-to-end request throughput and latency.
+
+    This function starts the server as a subprocess, then submits TCP requests
+    using multiple client workers, attempting to send at a target QPS for a
+    fixed duration.
+
+    Args:
+        data_file: Data file to configure the server with.
+        algo: Algorithm name.
+        reread_on_query: Whether the server should reread the file per query.
+        qps_target: Target QPS (requests per second) to attempt.
+        duration_s: Benchmark duration in seconds.
+        clients: Number of concurrent client workers.
+        tmp_dir: Temporary directory for config files.
+
+    Returns:
+        A results dictionary suitable for CSV export.
+
+    Raises:
+        RuntimeError: If the server fails to start.
+    """
     port = get_free_port()
     cfg_path = tmp_dir / "bench_app.conf"
     write_temp_config(cfg_path, data_file, reread_on_query, algo)
@@ -310,16 +445,20 @@ def benchmark_server_qps(
     }
 
 
-# ----------------------------
-# CSV writing
-# ----------------------------
-
 def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    """Write results as a CSV file.
+
+    The CSV header uses a stable field order computed as the union of keys in
+    insertion order.
+
+    Args:
+        path: Output CSV file path.
+        rows: Result rows to write.
+    """
     if not rows:
         return
     ensure_dir(path.parent)
 
-    # stable field order: union of all keys
     keys: list[str] = []
     seen = set()
     for r in rows:
@@ -335,59 +474,75 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
             w.writerow(r)
 
 
-# ----------------------------
-# CLI
-# ----------------------------
-
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for benchmarking.
+
+    Returns:
+        Parsed command-line arguments.
+    """
     p = argparse.ArgumentParser(
         description="Benchmark search algorithms and server QPS."
     )
     p.add_argument(
-        "--outdir", default="benchmarks/results",
-        help="Output directory for CSV results."
+        "--outdir",
+        default="benchmarks/results",
+        help="Output directory for CSV results.",
     )
     p.add_argument(
-        "--datadir", default="benchmarks/data",
-        help="Directory to store generated data files."
+        "--datadir",
+        default="benchmarks/data",
+        help="Directory to store generated data files.",
     )
     p.add_argument(
-        "--sizes", default="10000,50000,100000,250000,500000,1000000",
-        help="Comma-separated line counts."
+        "--sizes",
+        default="10000,50000,100000,250000,500000,1000000",
+        help="Comma-separated line counts.",
     )
     p.add_argument(
-        "--queries", type=int, default=500,
-        help="Number of queries per algo run."
+        "--queries",
+        type=int,
+        default=500,
+        help="Number of queries per algo run.",
     )
     p.add_argument(
-        "--hit-ratio", type=float, default=0.5,
-        help="Fraction of queries that should be hits."
+        "--hit-ratio",
+        type=float,
+        default=0.5,
+        help="Fraction of queries that should be hits.",
     )
     p.add_argument(
         "--algos",
         default="linear_scan,mmap_scan,grep_fx,set_cache,sorted_bisect",
-        help="Comma-separated algos."
+        help="Comma-separated algos.",
     )
     p.add_argument("--mode", choices=["algo", "qps", "both"], default="both")
     p.add_argument(
-        "--qps-targets", default="100,250,500,1000,2000",
-        help="Comma-separated QPS targets."
+        "--qps-targets",
+        default="100,250,500,1000,2000",
+        help="Comma-separated QPS targets.",
     )
     p.add_argument(
-        "--qps-duration", type=float, default=5.0,
-        help="Duration seconds per QPS step."
+        "--qps-duration",
+        type=float,
+        default=5.0,
+        help="Duration seconds per QPS step.",
     )
     p.add_argument(
-        "--clients", type=int, default=50,
-        help="Concurrent client workers for QPS tests."
+        "--clients",
+        type=int,
+        default=50,
+        help="Concurrent client workers for QPS tests.",
     )
     p.add_argument(
-        "--verbose", action="store_true", help="Print progress updates."
+        "--verbose",
+        action="store_true",
+        help="Print progress updates.",
     )
     return p.parse_args()
 
 
 def main() -> None:
+    """Run benchmarks and write CSV outputs."""
     args = parse_args()
 
     outdir = Path(args.outdir)
@@ -403,7 +558,6 @@ def main() -> None:
         [int(x.strip()) for x in args.qps_targets.split(",") if x.strip()]
     )
 
-    # Filter to supported algos if SearchEngine provides it
     supported: set[str] | None = None
     if hasattr(SearchEngine, "supported_algorithms"):
         try:
@@ -418,7 +572,6 @@ def main() -> None:
             print(f"Supported algos: {sorted(supported)}", flush=True)
             print(f"Benchmarking algos: {algos}", flush=True)
 
-    # Estimate run count so it doesn't feel "hung"
     est_runs = 0
     for _n in sizes:
         for algo in algos:
@@ -427,7 +580,7 @@ def main() -> None:
                 if algo in {"linear_scan", "mmap_scan", "grep_fx"}
                 else [False]
             )
-            for reread in reread_modes:
+            for _reread in reread_modes:
                 if args.mode in {"algo", "both"}:
                     est_runs += 1
                 if args.mode in {"qps", "both"}:
@@ -445,7 +598,10 @@ def main() -> None:
         data_file = datadir / f"data_{n}.txt"
         hits = generate_data_file(data_file, n, seed=123)
         queries = make_queries(
-            hits, total=args.queries, hit_ratio=args.hit_ratio, seed=456
+            hits,
+            total=args.queries,
+            hit_ratio=args.hit_ratio,
+            seed=456,
         )
 
         for algo in algos:
@@ -462,7 +618,7 @@ def main() -> None:
                         print(
                             f"[{done}/{est_runs}] algo: "
                             f"lines={n} algo={algo} reread={reread}",
-                            flush=True
+                            flush=True,
                         )
                     try:
                         row = benchmark_algo(data_file, algo, reread, queries)
@@ -497,7 +653,7 @@ def main() -> None:
                                 f"[{done}/{est_runs}] qps:  "
                                 f"lines={n} algo={algo} reread={reread} "
                                 f"qps={qps}",
-                                flush=True
+                                flush=True,
                             )
                         try:
                             row2 = benchmark_server_qps(

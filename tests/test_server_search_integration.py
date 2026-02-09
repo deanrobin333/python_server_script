@@ -1,5 +1,11 @@
 #!/usr/bin/python3
-# tests/test_server_search_integration.py
+"""
+Server-search integration tests.
+
+These tests validate the end-to-end integration between the TCP server and
+the search engine by starting the server as a subprocess and issuing real
+socket requests.
+"""
 
 from __future__ import annotations
 
@@ -14,26 +20,38 @@ RESULT_NOT_FOUND = b"STRING NOT FOUND\n"
 
 
 def _get_free_port() -> int:
+    """Return an unused TCP port bound on localhost."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
         return int(s.getsockname()[1])
 
 
 def _recv_until_result(conn: socket.socket, bufsize: int = 4096) -> bytes:
-    """
-    Read until we see a terminal result line.
-    Works with persistent connections (no EOF).
+    """Read from a socket until a terminal result line is observed.
+
+    The server may keep the connection open, so EOF is not guaranteed.
+    This helper reads until it detects one of the protocol result
+    terminators or a safety limit is reached.
+
+    Args:
+        conn: Connected client socket.
+        bufsize: Bytes per recv() call.
+
+    Returns:
+        Bytes received up to and including the first detected result line.
     """
     buf = b""
     while True:
         part = conn.recv(bufsize)
         if not part:
             break
+
         buf += part
 
         if RESULT_EXISTS in buf or RESULT_NOT_FOUND in buf:
             break
 
+        # Safety: prevent unbounded growth if something goes wrong.
         if len(buf) > 1024 * 1024:
             break
 
@@ -41,6 +59,7 @@ def _recv_until_result(conn: socket.socket, bufsize: int = 4096) -> bytes:
 
 
 def test_server_returns_exists_for_exact_line(tmp_path: Path) -> None:
+    """Ensure the server returns EXISTS for an exact full-line match."""
     port = _get_free_port()
 
     data_file = tmp_path / "data.txt"
@@ -92,6 +111,7 @@ def test_server_returns_exists_for_exact_line(tmp_path: Path) -> None:
 
 
 def test_server_returns_not_found_for_partial(tmp_path: Path) -> None:
+    """Ensure the server returns NOT FOUND for partial or substring queries."""
     port = _get_free_port()
 
     data_file = tmp_path / "data.txt"

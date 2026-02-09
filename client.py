@@ -1,5 +1,15 @@
 #!/usr/bin/python3
-# client.py
+"""
+TCP String Lookup Client.
+
+This client connects to the TCP String Lookup Server, sends a single newline-
+terminated query, then reads and prints the server response
+(debug line + result line).
+
+TLS is optional. When a config file is provided via --config, the client will
+use SSL settings from that file to determine whether to wrap the connection in
+TLS and whether to verify the server certificate.
+"""
 
 from __future__ import annotations
 
@@ -12,39 +22,51 @@ from typing import List
 from config import ConfigError, load_config
 
 
-RECV_BUFSIZE = 4096  # how many bytes we ask for per recv() call.
-RECV_TIMEOUT_SECONDS = 5.0  # stops client hanging forever if server stalls
+RECV_BUFSIZE = 4096  # bytes to request per recv() call
+RECV_TIMEOUT_SECONDS = 5.0  # prevent hanging forever if server stalls
 
 RESULT_EXISTS = b"STRING EXISTS\n"
 RESULT_NOT_FOUND = b"STRING NOT FOUND\n"
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments.
+
+    Returns:
+        Parsed command-line arguments.
+    """
     parser = argparse.ArgumentParser(description="TCP String Lookup Client")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=44445)
-
-    # Optional config: lets client use SSL settings from the same app.conf
     parser.add_argument(
         "--config",
         required=False,
-        help="Optional config file path (used for SSL settings)",
+        help="Optional config file path (used for SSL settings).",
     )
-
     parser.add_argument(
         "query",
-        help="Query string to send (exact full-line match)",
+        help="Query string to send (exact full-line match).",
     )
     return parser.parse_args()
 
 
 def recv_until_result(sock: socket.socket) -> bytes:
-    """
-    Receive data until we see one of the result terminators:
-      - STRING EXISTS\\n
-      - STRING NOT FOUND\\n
+    """Receive server output until a result line is observed.
 
-    This supports a persistent server connection, where EOF never arrives.
+    The server uses a persistent connection and may not close the socket (EOF)
+    after responding. This function therefore reads until it detects one of the
+    protocol terminators:
+
+    - STRING EXISTS\\n
+    - STRING NOT FOUND\\n
+
+    Args:
+        sock: Connected socket from which to read.
+
+    Returns:
+        Bytes received up to and including the first result terminator, or
+        whatever was received before the connection closed or
+        a safety limit was reached.
     """
     chunks: List[bytes] = []
     buf = b""
@@ -52,13 +74,11 @@ def recv_until_result(sock: socket.socket) -> bytes:
     while True:
         data = sock.recv(RECV_BUFSIZE)
         if not data:
-            # Server closed (EOF)
             chunks.append(buf)
             break
 
         buf += data
 
-        # Stop as soon as we have a full result line.
         if RESULT_EXISTS in buf or RESULT_NOT_FOUND in buf:
             chunks.append(buf)
             break
@@ -76,9 +96,27 @@ def _wrap_client_ssl(
     host: str,
     config_path: str | None,
 ) -> socket.socket:
-    """
-    Optionally wrap a connected socket with TLS based on config settings.
-    If no config or ssl_enabled=False, returns the raw socket unchanged.
+    """Optionally wrap a connected socket with TLS based on config settings.
+
+    If no config is provided, or if ssl_enabled=False in the config, this
+    function returns the connected socket unchanged.
+
+    When ssl_enabled=True:
+    - If ssl_verify=True, the client uses a default verification context and
+      optionally loads a CA file to trust a self-signed server certificate.
+    - If ssl_verify=False, the client uses an unverified context for local-only
+      encryption without server identity verification.
+
+    Args:
+        raw_sock: Connected TCP socket.
+        host: Hostname/IP used for SNI and (when verifying) hostname checks.
+        config_path: Path to the config file providing SSL settings.
+
+    Returns:
+        A TLS-wrapped socket if SSL is enabled, otherwise the original socket.
+
+    Raises:
+        SystemExit: If the config cannot be loaded.
     """
     if not config_path:
         return raw_sock
@@ -94,27 +132,35 @@ def _wrap_client_ssl(
     if cfg.ssl_verify:
         ctx = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
 
-        # For self-signed cert verification, a CA file is required.
+        # For self-signed certificate verification, a CA file is required.
         if cfg.ssl_cafile is not None:
             ctx.load_verify_locations(cafile=str(cfg.ssl_cafile))
 
-        # NOTE:
-        # - If your cert includes SAN for host/IP, hostname checking will work.
-        # - If not, verification can fail with "hostname mismatch".
-        # We leave default check_hostname=True when ssl_verify=True.
+        # When ssl_verify=True, we keep the default check_hostname=True.
+        # Verification may fail if the server cert SAN does not match `host`.
     else:
-        # For local encryption only (no server identity verification)
+        # Local-only encryption without server identity verification.
         ctx = ssl._create_unverified_context()
 
     return ctx.wrap_socket(raw_sock, server_hostname=host)
 
 
 def _die(msg: str, code: int = 2) -> "None":
+    """Print an error message and exit.
+
+    Args:
+        msg: Message to print to stderr.
+        code: Exit code.
+
+    Raises:
+        SystemExit: Always, with the given exit code.
+    """
     print(msg, file=sys.stderr)
     raise SystemExit(code)
 
 
 def main() -> None:
+    """Run the client entry point."""
     args = parse_args()
     query_line = args.query + "\n"
 
@@ -125,12 +171,11 @@ def main() -> None:
         ) as raw_sock:
             raw_sock.settimeout(RECV_TIMEOUT_SECONDS)
 
-            # Optional: wrap in TLS if config enables it
             sock = _wrap_client_ssl(raw_sock, args.host, args.config)
 
             sock.sendall(query_line.encode("utf-8"))
 
-            # Read just one response (debug + result), then exit cleanly.
+            # Read one response (debug + result), then exit cleanly.
             response = recv_until_result(sock)
 
         print(response.decode("utf-8", errors="replace"), end="")
@@ -152,10 +197,7 @@ def main() -> None:
         )
 
     except ssl.SSLError as exc:
-        """
-        e.g. WRONG_VERSION_NUMBER, CERTIFICATE_VERIFY_FAILED,
-            hostname mismatch
-        """
+        """Handle common TLS handshake errors."""
         _die(
             "SSL/TLS handshake failed.\n"
             f"Reason: {exc}\n\n"

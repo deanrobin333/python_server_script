@@ -1,5 +1,17 @@
 #!/usr/bin/python3
-# server.py
+"""
+TCP String Lookup Server.
+
+This module implements a newline-delimited TCP server
+that accepts queries over a persistent connection.
+For each query line received, it returns:
+
+- A DEBUG line with the client IP, query, and elapsed time in milliseconds.
+- A result line: "STRING EXISTS" or "STRING NOT FOUND".
+
+TLS is optional. If configured, accepted connections are wrapped with an SSL
+context in the per-client thread to avoid blocking the accept loop.
+"""
 
 from __future__ import annotations
 
@@ -22,17 +34,42 @@ RESPONSE_NOT_FOUND = b"STRING NOT FOUND\n"
 
 @dataclass(frozen=True)
 class ServerConfig:
+    """Runtime server configuration.
+
+    Attributes:
+        host: Interface address to bind to.
+        port: TCP port to listen on.
+    """
+
     host: str
     port: int
 
 
 class TCPStringLookupServer:
+    """A threaded TCP server that performs newline-delimited string lookups.
+
+    The server listens on the configured host/port and
+    spawns a daemon thread per client connection.
+    Each client connection is handled as a persistent session
+    that reads newline-delimited queries and responds per query.
+
+    TLS support is optional. If an SSL context is provided, client sockets are
+    wrapped with TLS after accept and before request handling.
+    """
+
     def __init__(
         self,
         cfg: ServerConfig,
         engine: SearchEngine,
         ssl_context: ssl.SSLContext | None = None,
     ) -> None:
+        """Initialize the server.
+
+        Args:
+            cfg: Network bind configuration (host/port).
+            engine: Search engine used to answer existence queries.
+            ssl_context: Optional server-side SSL context for TLS connections.
+        """
         self._cfg = cfg
         self._engine = engine
         self._ssl_context = ssl_context
@@ -40,7 +77,12 @@ class TCPStringLookupServer:
         self._stop_event = threading.Event()
 
     def start(self) -> None:
-        """Start listening and accepting connections (blocking)."""
+        """Start listening and accepting connections (blocking).
+
+        This method binds and listens on the configured address, then accepts
+        connections in a loop until `stop()` is called.
+        Each accepted connection is handled in its own daemon thread.
+        """
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._sock.bind((self._cfg.host, self._cfg.port))
@@ -63,7 +105,7 @@ class TCPStringLookupServer:
             t.start()
 
     def stop(self) -> None:
-        """Signal server to stop and close the listening socket."""
+        """Signal the server to stop and close the listening socket."""
         self._stop_event.set()
         if self._sock is not None:
             try:
@@ -74,9 +116,14 @@ class TCPStringLookupServer:
     def _handle_client_thread(
         self, conn: socket.socket, addr: tuple[str, int]
     ) -> None:
-        """
-        Per-client thread.
-        TLS wrapping is done here to avoid blocking the accept loop.
+        """Handle a single client connection in a dedicated thread.
+
+        If TLS is enabled, the socket is wrapped here (after accept) so TLS
+        negotiation does not block the main accept loop.
+
+        Args:
+            conn: The accepted client socket.
+            addr: The client address tuple (ip, port).
         """
         if self._ssl_context is not None:
             try:
@@ -93,16 +140,24 @@ class TCPStringLookupServer:
     def _handle_client(
         self, conn: socket.socket, addr: tuple[str, int]
     ) -> None:
-        """
-        Persistent connection:
-        - reads newline-delimited queries in a loop
-        - replies per query
-        - does NOT disconnect idle clients (keeps waiting)
+        """Serve a persistent client session.
+
+        This handler reads newline-delimited queries in a loop and responds to
+        each query without closing the connection. Idle clients are not
+        disconnected; the server keeps waiting for the next query.
+
+        Per query, the server sends:
+        1) a DEBUG line with timing information
+        2) a result line indicating whether the string exists
+
+        Args:
+            conn: Connected client socket (plain or TLS-wrapped).
+            addr: The client address tuple (ip, port).
         """
         client_ip, _client_port = addr
 
-        # use a small timeout so threads can exit when server.stop() is called,
-        # but this does NOT "kick" idle users (we just continue waiting).
+        # Use a small timeout so threads can exit when server.stop() is called.
+        # This does NOT disconnect idle clients; we simply continue waiting.
         conn.settimeout(1.0)
 
         buf = b""
@@ -112,23 +167,21 @@ class TCPStringLookupServer:
                 try:
                     chunk = conn.recv(4096)
                 except socket.timeout:
-                    # No data yet; keep waiting forever (like nc example)
+                    # No data yet; keep waiting forever (like nc example).
                     continue
 
                 if not chunk:
-                    # client closed
+                    # Client closed the connection.
                     break
 
                 buf += chunk
 
-                # Process complete lines
                 while b"\n" in buf:
                     raw_line, buf = buf.split(b"\n", 1)
 
-                    # Trim CRLF and NULLs
+                    # Trim CRLF and NULLs.
                     raw_line = raw_line.rstrip(b"\r").rstrip(b"\x00")
 
-                    # Safety: prevent pathological line growth
                     if len(raw_line) > MAX_PAYLOAD_BYTES:
                         msg = (
                             "DEBUG: error=ValueError: query too long\n"
@@ -162,7 +215,6 @@ class TCPStringLookupServer:
                         )
                     except OSError:
                         return
-
         finally:
             try:
                 conn.close()
@@ -171,6 +223,11 @@ class TCPStringLookupServer:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments.
+
+    Returns:
+        Parsed command-line arguments.
+    """
     p = argparse.ArgumentParser(description="TCP String Lookup Server")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=44445)
@@ -183,7 +240,18 @@ def parse_args() -> argparse.Namespace:
 
 
 def _build_server_ssl_context(app_cfg) -> ssl.SSLContext | None:
-    """Build SSL context if ssl_enabled=True, otherwise return None."""
+    """Build a server-side SSL context if enabled.
+
+    Args:
+        app_cfg: Loaded application configuration.
+
+    Returns:
+        An SSLContext configured for server-side TLS if SSL is enabled,
+        otherwise None.
+
+    Raises:
+        AssertionError: If SSL is enabled but cert/key paths are missing.
+    """
     if not app_cfg.ssl_enabled:
         return None
 
@@ -202,6 +270,7 @@ def _build_server_ssl_context(app_cfg) -> ssl.SSLContext | None:
 
 
 def main() -> None:
+    """Run the TCP server entry point."""
     args = parse_args()
 
     try:

@@ -1,5 +1,16 @@
 #!/usr/bin/python3
-# config.py
+"""
+Application configuration parsing.
+
+This module defines the configuration schema used by the server/client and
+provides a simple parser for key=value configuration files.
+
+Parsing rules:
+- Unknown keys are ignored.
+- Blank lines and comment lines starting with '#' are ignored.
+- The 'linuxpath' key is required.
+- Some values are validated (booleans, search algorithm, SSL constraints).
+"""
 
 from __future__ import annotations
 
@@ -8,34 +19,55 @@ from pathlib import Path
 
 
 class ConfigError(ValueError):
-    """Raised when the configuration file is missing required values
-    or is invalid."""
+    """Raised when the configuration file is missing
+    required values or invalid."""
 
 
 @dataclass(frozen=True)
 class AppConfig:
-    """
-    Parsed configuration used by the server.
+    """Parsed application configuration.
 
-    Required configuration is path_to_file:
-    - linuxpath=<path to file>
+    Attributes:
+        linuxpath: Path to the input file containing rows to search.
+        reread_on_query: If True, re-read the file on each query.
+        search_algo: Search strategy identifier.
+
+        ssl_enabled: If True, enable TLS for server/client connections.
+        ssl_certfile: Server certificate path (required if ssl_enabled=True).
+        ssl_keyfile: Server private key path (required if ssl_enabled=True).
+
+        ssl_verify: If True, the client verifies the server certificate.
+        ssl_cafile: Trust anchor path for self-signed certificates. Required
+            when ssl_enabled=True and ssl_verify=True.
     """
+
     linuxpath: Path
     reread_on_query: bool = True
     search_algo: str = "linear_scan"
 
-    # Optional SSL/TLS settings
     ssl_enabled: bool = False
     ssl_certfile: Path | None = None
     ssl_keyfile: Path | None = None
 
-    # Client-side SSL verification options (optional)
     ssl_verify: bool = True
     ssl_cafile: Path | None = None
 
 
 def _parse_bool(value: str) -> bool:
-    """Parse True/False from config values."""
+    """Parse a boolean config value.
+
+    Accepted truthy values: true, 1, yes, y, on.
+    Accepted falsy values: false, 0, no, n, off.
+
+    Args:
+        value: Raw string value from the config file.
+
+    Returns:
+        Parsed boolean value.
+
+    Raises:
+        ConfigError: If the value cannot be interpreted as a boolean.
+    """
     v = value.strip().lower()
     if v in {"true", "1", "yes", "y", "on"}:
         return True
@@ -45,28 +77,36 @@ def _parse_bool(value: str) -> bool:
 
 
 def load_config(config_path: str | Path) -> AppConfig:
+    """Load and validate application configuration from a file.
+
+    Supported keys:
+        linuxpath=/path/to/file.txt               (required)
+        reread_on_query=True|False                (optional)
+        search_algo=linear_scan|mmap_scan|...     (optional)
+
+        ssl_enabled=True|False                    (optional)
+        ssl_certfile=/path/to/server.crt          (optional)
+        ssl_keyfile=/path/to/server.key           (optional)
+
+        ssl_verify=True|False                     (optional)
+        ssl_cafile=/path/to/ca_bundle.crt         (optional)
+
+    Validation rules:
+    - linuxpath is required and must be non-empty.
+    - search_algo must be one of the supported algorithms.
+    - If ssl_enabled=True, ssl_certfile and ssl_keyfile must be provided.
+    - If ssl_enabled=True and ssl_verify=True, ssl_cafile must be provided.
+
+    Args:
+        config_path: Path to the configuration file.
+
+    Returns:
+        A validated AppConfig instance.
+
+    Raises:
+        ConfigError: If the file cannot be read, required keys are missing, or
+            values fail validation.
     """
-    Load configuration from a file.
-
-    The config may contain many irrelevant lines.
-    The relevant line starts with:
-        linuxpath=/some/path/file.txt
-        reread_on_query=True|False
-        search_algo=linear_scan
-
-    Optional SSL:
-        ssl_enabled=True|False
-        ssl_certfile=/path/to/server.crt
-        ssl_keyfile=/path/to/server.key
-        ssl_verify=True|False
-        ssl_cafile=/path/to/ca_bundle.crt
-
-    Rules:
-    - Unknown keys are ignored.
-    - Blank lines and comments (#...) are ignored.
-    - linuxpath is required.
-    """
-
     path = Path(config_path)
 
     try:
@@ -113,7 +153,6 @@ def load_config(config_path: str | Path) -> AppConfig:
             search_algo = value
             continue
 
-        # SSL parsing (optional)
         if stripped.startswith("ssl_enabled="):
             value = stripped[len("ssl_enabled="):].strip()
             ssl_enabled = _parse_bool(value)
@@ -139,7 +178,7 @@ def load_config(config_path: str | Path) -> AppConfig:
             ssl_cafile = Path(value) if value else None
             continue
 
-        # Ignore other keys/lines.
+        # Unknown keys are ignored.
 
     if linuxpath is None:
         raise ConfigError("Missing required config entry: linuxpath=")
@@ -158,14 +197,13 @@ def load_config(config_path: str | Path) -> AppConfig:
             f"Allowed: {sorted(allowed)}"
         )
 
-    # If SSL is enabled, server must have cert + key
     if ssl_enabled:
         if ssl_certfile is None or ssl_keyfile is None:
             raise ConfigError(
-                "ssl_enabled=True requires ssl_certfile=... "
-                "and ssl_keyfile=..."
+                "ssl_enabled=True requires ssl_certfile=... and "
+                "ssl_keyfile=..."
             )
-    # Client verification sanity: only meaningful when TLS is enabled
+
     if ssl_enabled and ssl_verify and ssl_cafile is None:
         raise ConfigError(
             "ssl_verify=True requires ssl_cafile=... "
