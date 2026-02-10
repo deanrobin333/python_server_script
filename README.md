@@ -64,8 +64,6 @@
 	- Performant
 	    
 	- Production-deployable (systemd-ready)
-
-	- Algorithmic Sciences - works for quantitative finance (algosciences)
     
 
 * * *
@@ -129,6 +127,8 @@
     - `openssl` (for SSL certificates)
         
     - `nc` / `netcat` (for interactive testing)
+
+	- `ufw` - firewwall to open port 44445
         
 
 - Install Python dependencies (if any):
@@ -136,45 +136,11 @@
 	- `pip install -r requirements.txt`
 
 * * *
-
-## 6 Running the Server and Client
+## 6 Configuration File
 ###### [Table of Contents](#table-of-contents)
-
-> All commands should be run from the **project root** (`python_server_script/`).
-
-### Start the server
-
-`python3 -m server --host 127.0.0.1 --port 44445 --config app.conf`
-
-### Run a client (single query)
-
-`python3 -m client --host 127.0.0.1 --port 44445 --config app.conf "11;0;23;16;0;18;3;0;"`
-
-### Interactive mode (netcat)
-
-`nc 127.0.0.1 4444511;0;23;16;0;18;3;0;`
-
-### From another computer (LAN)
-
-- On server machine:
-
-	- `python3 -m server --host 0.0.0.0 --port 44445 --config app.conf`
-
-- Open firewall:
-
-	- `sudo ufw allow 44445/tcp`
-
-- On client machine:
-
-	```
-	nc <SERVER_IP> 444453
-	0;1;28;0;7;5;0;
-	```
-
-* * *
-
-## 7 Configuration File
-###### [Table of Contents](#table-of-contents)
+- A configuration file is important. It is where settings are done.
+- Create a file named `app.conf` and set the settings.
+- You can use the below example.
 
 - Example `app.conf`: - set the `linuxpath`
 	```
@@ -182,7 +148,7 @@
 	foo=deanovo
 	
 	# Path to data file
-	linuxpath=../200k.txt
+	#linuxpath=../200k.txt
 	
 	# True = reread file every query
 	# False = allow caching (file must be stable)
@@ -205,6 +171,51 @@
 	```
 
 * * *
+
+## 7 Running the Server and Client
+###### [Table of Contents](#table-of-contents)
+
+> All commands should be run from the **project root** (`python_server_script/`).
+
+### Open firewall:
+- Make sure you allow the port you will use, in this case port `44445`
+- `sudo ufw allow 44445/tcp`
+
+### Start the server
+
+`python3 -m server --host 0.0.0.0 --port 44445 --config app.conf`
+
+### Run a client (single query)
+
+`python3 -m client --host 0.0.0.0 --port 44445 --config app.conf "11;0;23;16;0;18;3;0;"`
+
+### Interactive mode (netcat)
+
+```
+nc 0.0.0.0 44445
+
+11;0;23;16;0;18;3;0;
+```
+
+### From another computer (LAN)
+- You must know the IP address of the machine running the tcp server.
+- You can use `ip a` to find out the ip address
+	- Example result:
+		- `inet 192.168.1.33/24`
+	- In this example, the server IP is: 192.168.1.33
+
+- On client machine:
+
+	```
+	nc 192.168.1.33 444453
+	0;1;28;0;7;5;0;
+	```
+	- Replace `192.168.1.33` with your server IP in the `nc` command above. 
+- To use SSL from client machine, details explained fully below in "10 Step by Step SSL setup"
+
+* * *
+
+
 
 ## 8 Search Algorithms
 ###### [Table of Contents](#table-of-contents)
@@ -242,7 +253,7 @@
 - **Encrypted + authenticated** (`ssl_verify=True` + `ssl_cafile`)
     
 
-### Generate a certificate (recommended)
+### Generate a certificate (recommended) (detail procedure below)
 - Example to generate OpenSSL Certificate
     - create a certs directory `mkdir -p certs`
 
