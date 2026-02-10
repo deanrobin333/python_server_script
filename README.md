@@ -64,6 +64,8 @@
 	- Performant
 	    
 	- Production-deployable (systemd-ready)
+
+	- Algorithmic Sciences - works for quantitative finance (algosciences)
     
 
 * * *
