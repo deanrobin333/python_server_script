@@ -23,7 +23,7 @@
 
 * * *
 
-##1 Author Details
+## 1 Author Details
 ###### [Table of Contents](#table-of-contents)
 
 **Dean Robin Otsyeno**  
