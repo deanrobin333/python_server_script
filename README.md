@@ -5,20 +5,20 @@
 * * *
 
 ## Table of Contents
-1. [Author Details](1-author-details)
+1. [Author Details](#1-author-details)
 2. [Project Overview](#2-Project-Overview)
 3. [Code Quality and Standards](#3-Code-Quality-and-Standards)
-3. [Architecture and Design](#3-Architecture-and-Design)
-4. [Requirements](#4-Requirements)
-5. [Running the Server and Client](#5-Running-the-Server-and-Client)
-6. [Configuration File](#6-Configuration-File)
-7. [Search Algorithms](#7-Search-Algorithms)
-8. [SSL or TLS Support](#8-SSL-or-TLS-Support)
-9. [🔐 Step by Step SSL setup](#9-Step-by-Step-SSL-setup)
-10. [Running as a Daemon (systemd)](#10-Running-as-a-Daemon)
-11. [Benchmarking](#11-Benchmarking)
-12. [Testing](#12-Testing)
-13. [Limitations and Notes](#13-Limitations-and-Notes)
+4. [Architecture and Design](#4-Architecture-and-Design)
+5. [Requirements](#5-Requirements)
+6. [Running the Server and Client](#6-Running-the-Server-and-Client)
+7. [Configuration File](#7-Configuration-File)
+8. [Search Algorithms](#8-Search-Algorithms)
+9. [SSL or TLS Support](#9-SSL-or-TLS-Support)
+10. [🔐 Step by Step SSL setup](#10-Step-by-Step-SSL-setup)
+11. [Running as a Daemon (systemd)](#11-Running-as-a-Daemon)
+12. [Benchmarking](#12-Benchmarking)
+13. [Testing](#13-Testing)
+14. [Limitations and Notes](#14-Limitations-and-Notes)
     
 
 * * *
