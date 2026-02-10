@@ -595,5 +595,5 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 <br></br>
 <div align="right">
-    <sub style="font-style: italic"> Dean Robin Otsyeno - deanrobin777@gmail.com</sub>
+    <sub style="font-style: italic"> Dean Robin Otsyeno - kotsyeno@gmail.com</sub>
 </div>
