@@ -107,7 +107,7 @@
 - Optional:    
     - `openssl` (for SSL certificates)        
     - `nc` / `netcat` (for interactive testing)
-	- `ufw` - firewwall to open port 44445        
+	- `ufw` - firewall to open port 44445
 
 - Install Python dependencies (if any):
 	- `pip install -r requirements.txt`
@@ -156,7 +156,7 @@
 
 > All commands should be run from the **project root** (`python_server_script/`).
 
-### Open firewall:
+### Open specified port using firewall:
 - Make sure you allow the port you will use, in this case port `44445`
 - `sudo ufw allow 44445/tcp`
 
