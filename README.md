@@ -23,7 +23,7 @@
 
 * * *
 
-## 1 Author Details
+##1 Author Details
 ###### [Table of Contents](#table-of-contents)
 
 **Dean Robin Otsyeno**  
@@ -31,7 +31,7 @@
 
 * * *
 
-## 2 Project Overview
+##2 Project Overview
 ###### [Table of Contents](#table-of-contents)
 - A short end-to-end walkthrough video of the program being used and setting up SSL can be [watched here](https://drive.google.com/file/d/1TRrCKagyFCWvnVBwOy4Rq7SrrmU_U3Gc/view?usp=drive_link)
 - This project implements a **high-performance TCP server** that:
@@ -68,7 +68,7 @@
 
 * * *
 
-## 3 Code Quality and Standards
+##3 Code Quality and Standards
 
 - All modules and public functions are documented using **Google-style docstrings**
 - Code follows **PEP8** formatting and **PEP20** design principles
@@ -83,7 +83,7 @@
 
 * * *
 
-## 4 Architecture and Design
+##4 Architecture and Design
 ###### [Table of Contents](#table-of-contents)
 
 **Core components:**
@@ -114,7 +114,7 @@
 
 * * *
 
-## 5 Requirements
+##5 Requirements
 ###### [Table of Contents](#table-of-contents)
 
 - Python **3.10+**
@@ -134,7 +134,7 @@
 
 * * *
 
-## 6 Running the Server and Client
+##6 Running the Server and Client
 ###### [Table of Contents](#table-of-contents)
 
 > All commands should be run from the **project root** (`python_server_script/`).
@@ -170,7 +170,7 @@
 
 * * *
 
-## 7 Configuration File
+##7 Configuration File
 ###### [Table of Contents](#table-of-contents)
 
 - Example `app.conf`: - set the `linuxpath`
@@ -203,7 +203,7 @@
 
 * * *
 
-## 8 Search Algorithms
+##8 Search Algorithms
 ###### [Table of Contents](#table-of-contents)
 
 | Algorithm | Mode | Description |
@@ -218,7 +218,7 @@
 
 * * *
 
-## 9 SSL or TLS overview
+##9 SSL or TLS overview
 ###### [Table of Contents](#table-of-contents)
 
 ### Overview
@@ -268,7 +268,7 @@
     
 
 * * *
-## 10 Step by Step SSL setup
+##10 Step by Step SSL setup
 ###### [Table of Contents](#table-of-contents)
 
 This server supports **TLS-encrypted connections** to protect data in transit between the client and the server. This section explains, step by step, how to generate certificates, configure the server, and connect securely from a client machine.
@@ -487,7 +487,7 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-## 11 Running as a Daemon 
+##11 Running as a Daemon 
 **systemd**
 ###### [Table of Contents](#table-of-contents)
 
@@ -524,7 +524,7 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-## 12 Benchmarking
+##12 Benchmarking
 ###### [Table of Contents](#table-of-contents)
 - Benchmarking report available in the file
     -`Benchmark_report-TCP_String_Lookup_server-python_server_script`
@@ -564,7 +564,7 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-## 13 Testing
+##13 Testing
 ###### [Table of Contents](#table-of-contents)
 
 - Run all tests:
@@ -586,7 +586,7 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-## 14 Limitations and Notes
+##14 Limitations and Notes
 ###### [Table of Contents](#table-of-contents)
 
 - No authentication/authorization beyond TLS
