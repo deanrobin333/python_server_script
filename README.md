@@ -5,7 +5,7 @@
 * * *
 
 ## Table of Contents
-1. [Author Details](#1-author-details)
+1. [Author Details](1-author-details)
 2. [Project Overview](#2-Project-Overview)
 3. [Code Quality and Standards](#3-Code-Quality-and-Standards)
 3. [Architecture and Design](#3-Architecture-and-Design)
