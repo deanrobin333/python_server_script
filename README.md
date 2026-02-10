@@ -27,44 +27,35 @@
 ###### [Table of Contents](#table-of-contents)
 
 **Dean Robin Otsyeno**  
-📧 *deanrobin777@gmail.com*
+📧 *kotsyeno@gmail.com*
 
 * * *
 
 ## 2 Project Overview
 ###### [Table of Contents](#table-of-contents)
 - A short end-to-end walkthrough video of the program being used and setting up SSL can be [watched here](https://drive.google.com/file/d/1TRrCKagyFCWvnVBwOy4Rq7SrrmU_U3Gc/view?usp=drive_link)
+- Project Summary
+	- Project: TCP lookup service
+	- Package: python_server_script
+	- Application: TCP lookup service
+	- Benchmark harness: benchmark_search.py
+	- Module: search_engine, search, config
 - This project implements a **high-performance TCP server** that:
-
-	- Runs continuously
-	    
-	- Binds to a configurable network port
-	    
-	- Accepts multiple client connections concurrently
-	    
-	- Receives query strings
-	    
-	- Performs exact full-line lookups in a data file
-	    
-	- Returns structured responses
-	    
-	- Supports multiple search algorithms
-	    
-	- Supports optional SSL/TLS encryption
-	    
+	- Runs continuously	    
+	- Binds to a configurable network port	    
+	- Accepts multiple client connections concurrently	    
+	- Receives query strings	    
+	- Performs exact full-line lookups in a data file	    
+	- Returns structured responses	    
+	- Supports multiple search algorithms	    
+	- Supports optional SSL/TLS encryption	    
 	- Includes benchmarking and automated tests
-    
 
 - The server is designed to be:
-
-	- Configurable
-	    
-	- Secure
-	    
-	- Performant
-	    
-	- Production-deployable (systemd-ready)
-    
+	- Configurable	    
+	- Secure	    
+	- Performant	    
+	- Production-deployable (systemd-ready)    
 
 * * *
 
@@ -89,27 +80,19 @@
 
 **Core components:**
 
-- `server.py` — TCP server implementation
-    
-- `client.py` — CLI client
-    
-- `search_engine.py` — algorithm dispatch + caching
-    
-- `search.py` — individual search implementations
-    
-- `config.py` — strict configuration parsing & validation
-    
-- `benchmarks/` — performance benchmarking harness
-    
+- `server.py` — TCP server implementation    
+- `client.py` — CLI client    
+- `search_engine.py` — algorithm dispatch + caching    
+- `search.py` — individual search implementations    
+- `config.py` — strict configuration parsing & validation    
+- `benchmarks/` — performance benchmarking harness    
 - `tests/` — pytest-based test suite
     
 
 **Concurrency model:**
 
-- One thread per client connection
-    
-- Persistent connections supported (multiple queries per connection)
-    
+- One thread per client connection    
+- Persistent connections supported (multiple queries per connection)    
 - Graceful shutdown handling
     
 
@@ -120,19 +103,13 @@
 
 - Python **3.10+**
     
-- Linux (tested on Ubuntu)
-    
-- Optional:
-    
-    - `openssl` (for SSL certificates)
-        
+- Linux (tested on Ubuntu)    
+- Optional:    
+    - `openssl` (for SSL certificates)        
     - `nc` / `netcat` (for interactive testing)
-
-	- `ufw` - firewwall to open port 44445
-        
+	- `ufw` - firewwall to open port 44445        
 
 - Install Python dependencies (if any):
-
 	- `pip install -r requirements.txt`
 
 * * *
@@ -152,6 +129,8 @@
 	
 	# True = reread file every query
 	# False = allow caching (file must be stable)
+	# Use mmap_scan for large datasets when reread_on_query = True
+	# Use set_cache for maximum performance when reread_on_query = False
 	reread_on_query=False
 	
 	# Algorithms:
