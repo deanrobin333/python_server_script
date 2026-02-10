@@ -13,7 +13,7 @@
 6. [Running the Server and Client](#6-Running-the-Server-and-Client)
 7. [Configuration File](#7-Configuration-File)
 8. [Search Algorithms](#8-Search-Algorithms)
-9. [SSL or TLS Support](#9-SSL-or-TLS-Support)
+9. [SSL or TLS overview](#9-SSL-or-TLS-overview)
 10. [🔐 Step by Step SSL setup](#10-Step-by-Step-SSL-setup)
 11. [Running as a Daemon (systemd)](#11-Running-as-a-Daemon)
 12. [Benchmarking](#12-Benchmarking)
@@ -69,6 +69,7 @@
 * * *
 
 ## 3 Code Quality and Standards
+###### [Table of Contents](#table-of-contents)
 
 - All modules and public functions are documented using **Google-style docstrings**
 - Code follows **PEP8** formatting and **PEP20** design principles
