@@ -10,7 +10,7 @@
 3. [Code quality and standards](#3-Code-quality-and-standards)
 4. [Architecture and design](#4-Architecture-and-design)
 5. [Requirements](#5-Requirements)
-6. [Search Algorithms](#6-Search-Algorithms)
+6. [Search algorithms](#6-Search-algorithms)
 7. [Configuration file](#7-Configuration-file)
 8. [Running the server and client](#8-Running-the-server-and-client)
 9. [SSL or TLS overview](#9-SSL-or-TLS-overview)
@@ -114,7 +114,7 @@
 
 * * *
 
-## 6 Search Algorithms
+## 6 Search algorithms
 ###### [Table of contents](#table-of-contents)
 
 | Algorithm | Mode | Description |
