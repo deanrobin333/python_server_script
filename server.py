@@ -125,17 +125,28 @@ class TCPStringLookupServer:
             conn: The accepted client socket.
             addr: The client address tuple (ip, port).
         """
-        if self._ssl_context is not None:
-            try:
-                conn = self._ssl_context.wrap_socket(conn, server_side=True)
-            except ssl.SSLError:
+        try:
+            if self._ssl_context is not None:
                 try:
-                    conn.close()
-                except OSError:
-                    pass
-                return
+                    conn = self._ssl_context.wrap_socket(
+                        conn, server_side=True
+                    )
+                except ssl.SSLError:
+                    try:
+                        conn.close()
+                    except OSError:
+                        pass
+                    return
 
-        self._handle_client(conn, addr)
+            self._handle_client(conn, addr)
+
+        except Exception:
+            # Catch-all to prevent a per-client thread error from impacting
+            # overall server stability (unforeseen runtime errors).
+            try:
+                conn.close()
+            except OSError:
+                pass
 
     def _handle_client(
         self, conn: socket.socket, addr: tuple[str, int]
