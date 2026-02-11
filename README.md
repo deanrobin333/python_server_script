@@ -10,9 +10,9 @@
 3. [Code Quality and Standards](#3-Code-Quality-and-Standards)
 4. [Architecture and Design](#4-Architecture-and-Design)
 5. [Requirements](#5-Requirements)
-6. [Running the Server and Client](#6-Running-the-Server-and-Client)
+6. [Search Algorithms](#6-Search-Algorithms)
 7. [Configuration File](#7-Configuration-File)
-8. [Search Algorithms](#8-Search-Algorithms)
+8. [Running the Server and Client](#8-Running-the-Server-and-Client)
 9. [SSL or TLS overview](#9-SSL-or-TLS-overview)
 10. [🔐 Step by Step SSL setup](#10-Step-by-Step-SSL-setup)
 11. [Running as a Daemon (systemd)](#11-Running-as-a-Daemon)
@@ -112,8 +112,24 @@
 - Install Python dependencies (if any):
 	- `pip install -r requirements.txt`
 
+
 * * *
-## 6 Configuration File
+
+## 6 Search Algorithms
+###### [Table of Contents](#table-of-contents)
+
+| Algorithm | Mode | Description |
+| --- | --- | --- |
+| `linear_scan` | reread | Sequential scan (baseline) |
+| `mmap_scan` | reread | Memory-mapped file scan |
+| `grep_fx` | reread | External `grep -F -x` |
+| `set_cache` | cached | O(1) hash lookup |
+| `sorted_bisect` | cached | Binary search on sorted list |
+
+- Algorithm availability is **validated at startup** based on `reread_on_query`.
+
+* * *
+## 7 Configuration File
 ###### [Table of Contents](#table-of-contents)
 - A configuration file is important. It is where settings are done.
 - Create a file named `app.conf` and set the settings.
@@ -151,7 +167,7 @@
 
 * * *
 
-## 7 Running the Server and Client
+## 8 Running the Server and Client
 ###### [Table of Contents](#table-of-contents)
 
 > All commands should be run from the **project root** (`python_server_script/`).
@@ -194,22 +210,6 @@ nc 0.0.0.0 44445
 
 * * *
 
-
-
-## 8 Search Algorithms
-###### [Table of Contents](#table-of-contents)
-
-| Algorithm | Mode | Description |
-| --- | --- | --- |
-| `linear_scan` | reread | Sequential scan (baseline) |
-| `mmap_scan` | reread | Memory-mapped file scan |
-| `grep_fx` | reread | External `grep -F -x` |
-| `set_cache` | cached | O(1) hash lookup |
-| `sorted_bisect` | cached | Binary search on sorted list |
-
-- Algorithm availability is **validated at startup** based on `reread_on_query`.
-
-* * *
 
 ## 9 SSL or TLS overview
 ###### [Table of Contents](#table-of-contents)
@@ -262,6 +262,7 @@ nc 0.0.0.0 44445
 
 * * *
 ## 10 Step by Step SSL setup
+### Generating SSL Certificates
 ###### [Table of Contents](#table-of-contents)
 
 This server supports **TLS-encrypted connections** to protect data in transit between the client and the server. This section explains, step by step, how to generate certificates, configure the server, and connect securely from a client machine.
