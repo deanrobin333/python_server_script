@@ -295,6 +295,8 @@ def main() -> None:
         server.start()
     except KeyboardInterrupt:
         pass
+    except Exception as exc:
+        raise SystemExit(f"Fatal error: {exc}") from exc
     finally:
         server.stop()
 

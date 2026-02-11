@@ -1,38 +1,38 @@
-# TCP String Lookup Server
+# TCP string lookup server
 
-**Standardized Introductory Test Task**
+**Standardized introductory task**
 
 * * *
 
-## Table of Contents
-1. [Author Details](#1-author-details)
-2. [Project Overview](#2-Project-Overview)
-3. [Code Quality and Standards](#3-Code-Quality-and-Standards)
-4. [Architecture and Design](#4-Architecture-and-Design)
+## Table of contents
+1. [Author details](#1-author-details)
+2. [Project overview](#2-Project-overview)
+3. [Code quality and standards](#3-Code-quality-and-standards)
+4. [Architecture and design](#4-Architecture-and-design)
 5. [Requirements](#5-Requirements)
 6. [Search Algorithms](#6-Search-Algorithms)
-7. [Configuration File](#7-Configuration-File)
-8. [Running the Server and Client](#8-Running-the-Server-and-Client)
+7. [Configuration file](#7-Configuration-file)
+8. [Running the server and client](#8-Running-the-server-and-client)
 9. [SSL or TLS overview](#9-SSL-or-TLS-overview)
-10. [🔐 Step by Step SSL setup](#10-Step-by-Step-SSL-setup)
-11. [Running as a Daemon (systemd)](#11-Running-as-a-Daemon)
-12. [Benchmarking](#12-Benchmarking)
+10. [🔐 Step by step SSL setup](#10-Step-by-step-SSL-setup)
+11. [Running as a daemon (systemd)](#11-Running-as-a-daemon)
+12. [Benchmarking and speed test](#12-Benchmarking-and-speed-test)
 13. [Testing](#13-Testing)
-14. [Limitations and Notes](#14-Limitations-and-Notes)
+14. [Limitations and notes](#14-Limitations-and-notes)
     
 
 * * *
 
-## 1 Author Details
-###### [Table of Contents](#table-of-contents)
+## 1 Author details
+###### [Table of contents](#table-of-contents)
 
 **Dean Robin Otsyeno**  
 📧 *kotsyeno@gmail.com*
 
 * * *
 
-## 2 Project Overview
-###### [Table of Contents](#table-of-contents)
+## 2 Project overview
+###### [Table of contents](#table-of-contents)
 - A short end-to-end walkthrough video of the program being used and setting up SSL can be [watched here](https://drive.google.com/file/d/1TRrCKagyFCWvnVBwOy4Rq7SrrmU_U3Gc/view?usp=drive_link)
 - Project Summary
 	- Project: TCP lookup service
@@ -52,15 +52,14 @@
 	- Includes benchmarking and automated tests
 
 - The server is designed to be:
-	- Configurable	    
-	- Secure	    
-	- Performant	    
-	- Production-deployable (systemd-ready)    
+	- Configurable
+	- Secure
+	- Production-deployable (systemd-ready)
 
 * * *
 
-## 3 Code Quality and Standards
-###### [Table of Contents](#table-of-contents)
+## 3 Code quality and standards
+###### [Table of contents](#table-of-contents)
 
 - All modules and public functions are documented using **Google-style docstrings**
 - Code follows **PEP8** formatting and **PEP20** design principles
@@ -75,8 +74,8 @@
 
 * * *
 
-## 4 Architecture and Design
-###### [Table of Contents](#table-of-contents)
+## 4 Architecture and design
+###### [Table of contents](#table-of-contents)
 
 **Core components:**
 
@@ -99,7 +98,7 @@
 * * *
 
 ## 5 Requirements
-###### [Table of Contents](#table-of-contents)
+###### [Table of contents](#table-of-contents)
 
 - Python **3.10+**
     
@@ -109,14 +108,14 @@
     - `nc` / `netcat` (for interactive testing)
 	- `ufw` - firewall to open port 44445
 
-- Install Python dependencies (if any):
+- Install python dependencies (if any):
 	- `pip install -r requirements.txt`
 
 
 * * *
 
 ## 6 Search Algorithms
-###### [Table of Contents](#table-of-contents)
+###### [Table of contents](#table-of-contents)
 
 | Algorithm | Mode | Description |
 | --- | --- | --- |
@@ -128,9 +127,10 @@
 
 - Algorithm availability is **validated at startup** based on `reread_on_query`.
 
+
 * * *
-## 7 Configuration File
-###### [Table of Contents](#table-of-contents)
+## 7 Configuration file
+###### [Table of contents](#table-of-contents)
 - A configuration file is important. It is where settings are done.
 - Create a file named `app.conf` and set the settings.
 - You can use the below example.
@@ -167,8 +167,8 @@
 
 * * *
 
-## 8 Running the Server and Client
-###### [Table of Contents](#table-of-contents)
+## 8 Running the server and client
+###### [Table of contents](#table-of-contents)
 
 > All commands should be run from the **project root** (`python_server_script/`).
 
@@ -206,13 +206,13 @@ nc 0.0.0.0 44445
 	0;1;28;0;7;5;0;
 	```
 	- Replace `192.168.1.33` with your server IP in the `nc` command above. 
-- To use SSL from client machine, details explained fully below in "10 Step by Step SSL setup"
+- To use SSL from client machine, details explained fully below in "10 Step by step SSL setup"
 
 * * *
 
 
 ## 9 SSL or TLS overview
-###### [Table of Contents](#table-of-contents)
+###### [Table of contents](#table-of-contents)
 
 ### Overview
 
@@ -261,15 +261,15 @@ nc 0.0.0.0 44445
     
 
 * * *
-## 10 Step by Step SSL setup
-### Generating SSL Certificates
-###### [Table of Contents](#table-of-contents)
+## 10 Step by step SSL setup
+### Generating SSL certificates
+###### [Table of contents](#table-of-contents)
 
 This server supports **TLS-encrypted connections** to protect data in transit between the client and the server. This section explains, step by step, how to generate certificates, configure the server, and connect securely from a client machine.
 
 * * *
 
-### Overview: What Is Needed
+### Overview: what is needed
 
 - Server side requires
 
@@ -292,7 +292,7 @@ This server supports **TLS-encrypted connections** to protect data in transit be
 
 * * *
 
-### Step 1: Prepare a Directory for Certificates (Server)
+### Step 1: prepare a directory for certificates (server)
 
 - On the **server computer**, inside the repository root (`python_server_script`), create a directory to hold TLS files:
 
@@ -307,7 +307,7 @@ This server supports **TLS-encrypted connections** to protect data in transit be
 
 * * *
 
-### Step 2: Determine the Server’s IP Address
+### Step 2: determine the server’s IP address
 
 - If the client and server are on the same local network, you must use the **server’s LAN IP**, not `localhost`.
 
@@ -328,7 +328,7 @@ This server supports **TLS-encrypted connections** to protect data in transit be
 
 * * *
 
-### Step 3: Generate a Self-Signed Certificate (Server)
+### Step 3: generate a self-signed certificate (server)
 
 - From the **root of the repository**, generate the certificate and key:
 	```
@@ -358,7 +358,7 @@ This server supports **TLS-encrypted connections** to protect data in transit be
 
 * * *
 
-### Step 4: Configure SSL in `app.conf` (Server)
+### Step 4: configure SSL in `app.conf` (server)
 
 - On the **server computer**, open `app.conf` and update the SSL settings.
 
@@ -388,7 +388,7 @@ This server supports **TLS-encrypted connections** to protect data in transit be
 
 * * *
 
-### Step 5: Start the Server with SSL Enabled
+### Step 5: start the server with SSL enabled
 
 - From the repository root on the **server machine**:
 ```
@@ -406,12 +406,14 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-### Step 6: Copy the Certificate to the Client
+### Step 6: copy the certificate to the client
 
 - On the **client computer**, copy only the certificate:
+- You can manually copy it or share it via drive, or use this command from the terminal
 	```
 	scp user@192.168.1.33:/path/to/python_server_script/certs/server.crt ~/certs/
 	```
+	- replace `user` with your account's user name.
 
 	- Or place it in any directory you prefer.
 
@@ -421,7 +423,7 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-### Step 7: Connect Securely from the Client
+### Step 7: connect securely from the client
 
 - Because `nc` does not support TLS, use `openssl s_client`.
 
@@ -441,7 +443,7 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-### Step 8: Query the Server
+### Step 8: query the server
 
 - Once connected, you can paste queries directly.
 
@@ -467,7 +469,7 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-### Common Pitfalls
+### Common pitfalls
 
 - ❌ Using `nc` instead of `openssl s_client`
     
@@ -481,11 +483,12 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-## 11 Running as a Daemon 
+## 11 Running as a daemon 
 **systemd**
-###### [Table of Contents](#table-of-contents)
+###### [Table of contents](#table-of-contents)
 
 - Service file: `tcp-string-lookup.service`
+	- In this file, the code below `# EXAMPLE` is where you set your paths
 
 - Key steps:
 
@@ -518,10 +521,9 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 * * *
 
-## 12 Benchmarking
-###### [Table of Contents](#table-of-contents)
-- Benchmarking report available in the file
-    -`Benchmark_report-TCP_String_Lookup_server-python_server_script`
+## 12 Benchmarking and speed test
+###### [Table of contents](#table-of-contents)
+- Speed test report is found here `benchmarks/speed_testing_benchmarking_report.pdf`
 - Run benchmarks:
     - quicker first run:
 	  - `python3 -m benchmarks.benchmark_search --mode algo --sizes 10000,100000,250000 --queries 1000 --verbose`	   
@@ -534,13 +536,11 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 
 
 - Generated outputs:
-
-	- `benchmarks/data/`
-	    
+	- `benchmarks/data/`	    
 	- `benchmarks/results/results_algo.csv`
     
 
-### CSV Column Meaning
+### CSV column meaning
 
 | Column | Meaning |
 | --- | --- |
@@ -559,38 +559,27 @@ python3 -m server --host 0.0.0.0 --port 44445 --config app.conf
 * * *
 
 ## 13 Testing
-###### [Table of Contents](#table-of-contents)
+###### [Table of contents](#table-of-contents)
 
 - Run all tests:
-
 	- `pytest -q`
 
 - Test coverage includes:
-
-	- Config parsing
-	    
-	- Protocol correctness
-	    
+	- Config parsing  
+	- Protocol correctness 
 	- Server/client integration
-	    
 	- Algorithm consistency
-	    
 	- Error handling
-    
 
 * * *
 
-## 14 Limitations and Notes
-###### [Table of Contents](#table-of-contents)
+## 14 Limitations and notes
+###### [Table of contents](#table-of-contents)
 
 - No authentication/authorization beyond TLS
-    
-- No persistence beyond in-memory caches
-    
-- Designed for exact full-line matches only
-    
+- No persistence beyond in-memory caches 
+- Designed for exact full-line matches only   
 - Not intended as a general-purpose database
-    
 
 * * *
 
